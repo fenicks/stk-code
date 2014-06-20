@@ -645,7 +645,7 @@ class ComputeGaussian17TapHShader
 {
 public:
     static GLuint Program;
-    static GLuint uniform_source, uniform_dest;
+    static GLuint uniform_source, uniform_depth, uniform_dest;
 
     static void init();
 };
@@ -684,7 +684,7 @@ class ComputeGaussian17TapVShader
 {
 public:
     static GLuint Program;
-    static GLuint uniform_source, uniform_dest;
+    static GLuint uniform_source, uniform_depth, uniform_dest;
 
     static void init();
 };
