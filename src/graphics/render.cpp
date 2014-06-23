@@ -669,7 +669,7 @@ void IrrDriver::renderTransparent()
     else
     {
         glUseProgram(MeshShader::TransparentShader::Program);
-        glBindVertexArray(getVAO(E_VERTEX_TYPE::EVT_2TCOORDS));
+        glBindVertexArray(getVAO(E_VERTEX_TYPE::EVT_STANDARD));
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         for (unsigned i = 0; i < TransparentMeshes<TM_DEFAULT>::MeshSet.size(); i++)
             drawTransparentObject(*TransparentMeshes<TM_DEFAULT>::MeshSet[i], TransparentMeshes<TM_DEFAULT>::MVPSet[i], TransparentMeshes<TM_DEFAULT>::MeshSet[i]->TextureMatrix);

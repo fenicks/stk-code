@@ -506,7 +506,8 @@ void VBOGatherer::regenerateBuffer(enum VTXTYPE tp)
     // Fill array buffer first
     glGenBuffers(1, &vbo[tp]);
     glBindBuffer(GL_ARRAY_BUFFER, vbo[tp]);
-    glBufferData(GL_ARRAY_BUFFER, getVertexPitch(tp) * getVertexTotalCount(tp), 0, GL_STATIC_DRAW);
+    size_t cnt = getVertexPitch(tp) * getVertexTotalCount(tp);
+    glBufferData(GL_ARRAY_BUFFER, cnt, 0, GL_STATIC_DRAW);
 
     unsigned offset = 0;
     for (unsigned i = 0; i < storedCPUBuffer[tp].size(); i++)
@@ -540,15 +541,16 @@ void VBOGatherer::regenerateBuffer(enum VTXTYPE tp)
 
 void VBOGatherer::regenerateVAO()
 {
-    if (vao[VTXTYPE_TCOORD])
-        glDeleteVertexArrays(1, &vao[VTXTYPE_TCOORD]);
-    glGenVertexArrays(1, &vao[VTXTYPE_TCOORD]);
-    glBindVertexArray(vao[VTXTYPE_TCOORD]);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[VTXTYPE_TCOORD]);
+    if (vao[VTXTYPE_STANDARD])
+        glDeleteVertexArrays(1, &vao[VTXTYPE_STANDARD]);
+    glGenVertexArrays(1, &vao[VTXTYPE_STANDARD]);
+    glBindVertexArray(vao[VTXTYPE_STANDARD]);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[VTXTYPE_STANDARD]);
     glEnableVertexAttribArray(MeshShader::TransparentShader::attrib_position);
     glEnableVertexAttribArray(MeshShader::TransparentShader::attrib_texcoord);
-    glVertexAttribPointer(MeshShader::TransparentShader::attrib_position, 3, GL_FLOAT, GL_FALSE, getVertexPitch(VTXTYPE_TCOORD), 0);
-    glVertexAttribPointer(MeshShader::TransparentShader::attrib_texcoord, 2, GL_FLOAT, GL_FALSE, getVertexPitch(VTXTYPE_TCOORD), (GLvoid*)28);
+    glVertexAttribPointer(MeshShader::TransparentShader::attrib_position, 3, GL_FLOAT, GL_FALSE, getVertexPitch(VTXTYPE_STANDARD), 0);
+    glVertexAttribPointer(MeshShader::TransparentShader::attrib_texcoord, 2, GL_FLOAT, GL_FALSE, getVertexPitch(VTXTYPE_STANDARD), (GLvoid*)28);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo[VTXTYPE_STANDARD]);
 }
 
 size_t VBOGatherer::getVertexPitch(enum VTXTYPE tp) const
