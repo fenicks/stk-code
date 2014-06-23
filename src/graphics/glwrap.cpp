@@ -483,7 +483,7 @@ class VBOGatherer
     std::map<scene::IMeshBuffer*, unsigned> mappedBaseVertex[VTXTYPE_COUNT], mappedBaseIndex[VTXTYPE_COUNT];
 
     void regenerateBuffer(enum VTXTYPE);
-    void regenerateVAO();
+    void regenerateVAO(enum VTXTYPE);
     size_t getVertexPitch(enum VTXTYPE) const;
     size_t getIndexTotalCount(enum VTXTYPE) const;
     size_t getVertexTotalCount(enum VTXTYPE) const;
@@ -539,18 +539,18 @@ void VBOGatherer::regenerateBuffer(enum VTXTYPE tp)
     }
 }
 
-void VBOGatherer::regenerateVAO()
+void VBOGatherer::regenerateVAO(enum VTXTYPE tp)
 {
-    if (vao[VTXTYPE_STANDARD])
-        glDeleteVertexArrays(1, &vao[VTXTYPE_STANDARD]);
-    glGenVertexArrays(1, &vao[VTXTYPE_STANDARD]);
-    glBindVertexArray(vao[VTXTYPE_STANDARD]);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[VTXTYPE_STANDARD]);
+    if (vao[tp])
+        glDeleteVertexArrays(1, &vao[tp]);
+    glGenVertexArrays(1, &vao[tp]);
+    glBindVertexArray(vao[tp]);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[tp]);
     glEnableVertexAttribArray(MeshShader::TransparentShader::attrib_position);
     glEnableVertexAttribArray(MeshShader::TransparentShader::attrib_texcoord);
-    glVertexAttribPointer(MeshShader::TransparentShader::attrib_position, 3, GL_FLOAT, GL_FALSE, getVertexPitch(VTXTYPE_STANDARD), 0);
-    glVertexAttribPointer(MeshShader::TransparentShader::attrib_texcoord, 2, GL_FLOAT, GL_FALSE, getVertexPitch(VTXTYPE_STANDARD), (GLvoid*)28);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo[VTXTYPE_STANDARD]);
+    glVertexAttribPointer(MeshShader::TransparentShader::attrib_position, 3, GL_FLOAT, GL_FALSE, getVertexPitch(tp), 0);
+    glVertexAttribPointer(MeshShader::TransparentShader::attrib_texcoord, 2, GL_FLOAT, GL_FALSE, getVertexPitch(tp), (GLvoid*)28);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo[tp]);
 }
 
 size_t VBOGatherer::getVertexPitch(enum VTXTYPE tp) const
@@ -624,7 +624,7 @@ std::pair<unsigned, unsigned> VBOGatherer::getBase(scene::IMeshBuffer *mb)
     assert(mappedBaseIndex[tp].find(mb) == mappedBaseIndex[tp].end());
     storedCPUBuffer[tp].push_back(mb);
     regenerateBuffer(tp);
-    regenerateVAO();
+    regenerateVAO(tp);
 }
 
 static VBOGatherer *gatherersingleton = 0;
