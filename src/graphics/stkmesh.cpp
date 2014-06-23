@@ -135,6 +135,7 @@ GLMesh allocateMeshBuffer(scene::IMeshBuffer* mb)
         {
             indexSize = sizeof(u16);
             result.IndexType = GL_UNSIGNED_SHORT;
+            getVAOOffsetAndBase(mb);
             break;
         }
         case irr::video::EIT_32BIT:

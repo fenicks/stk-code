@@ -218,6 +218,8 @@ void compressTexture(irr::video::ITexture *tex, bool srgb, bool premul_alpha = f
 bool loadCompressedTexture(const std::string& compressed_tex);
 void saveCompressedTexture(const std::string& compressed_tex);
 
+std::pair<unsigned, unsigned> getVAOOffsetAndBase(scene::IMeshBuffer *mb);
+
 void draw3DLine(const core::vector3df& start,
     const core::vector3df& end, irr::video::SColor color);
 

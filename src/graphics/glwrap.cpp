@@ -473,6 +473,149 @@ void saveCompressedTexture(const std::string& compressed_tex)
     delete[] data;
 }
 
+class VBOGatherer
+{
+    enum VTXTYPE { VTXTYPE_STANDARD, VTXTYPE_TCOORD, VTXTYPE_TANGENT, VTXTYPE_COUNT };
+    GLuint vbo[VTXTYPE_COUNT], ibo[VTXTYPE_COUNT];
+    std::vector<scene::IMeshBuffer *> storedCPUBuffer[VTXTYPE_COUNT];
+    std::map<scene::IMeshBuffer*, unsigned> mappedBaseVertex[VTXTYPE_COUNT], mappedBaseIndex[VTXTYPE_COUNT];
+
+    void regenerateBuffer(enum VTXTYPE);
+    size_t getVertexPitch(enum VTXTYPE) const;
+    size_t getIndexTotalCount(enum VTXTYPE) const;
+    size_t getVertexTotalCount(enum VTXTYPE) const;
+    VTXTYPE getVTXTYPE(video::E_VERTEX_TYPE type);
+public:
+    VBOGatherer();
+    std::pair<unsigned, unsigned> getBase(scene::IMeshBuffer *);
+};
+
+VBOGatherer::VBOGatherer()
+{
+}
+
+void VBOGatherer::regenerateBuffer(enum VTXTYPE tp)
+{
+    mappedBaseVertex[tp].clear();
+    if (vbo[tp])
+        glDeleteBuffers(1, &vbo[tp]);
+    // Fill array buffer first
+    glGenBuffers(1, &vbo[tp]);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[tp]);
+    glBufferData(GL_ARRAY_BUFFER, getVertexPitch(tp) * getVertexTotalCount(tp), 0, GL_STATIC_DRAW);
+
+    unsigned offset = 0;
+    for (unsigned i = 0; i < storedCPUBuffer[tp].size(); i++)
+    {
+        scene::IMeshBuffer *mb = storedCPUBuffer[tp][i];
+        const void* vertices = mb->getVertices();
+        const u32 vertexCount = mb->getVertexCount();
+        const irr::video::E_VERTEX_TYPE vType = mb->getVertexType();
+        const c8* vbuf = static_cast<const c8*>(vertices);
+        glBufferSubData(GL_ARRAY_BUFFER, offset * getVertexPitch(tp), mb->getVertexCount() * getVertexPitch(tp), vbuf);
+        mappedBaseVertex[tp].insert(std::pair<scene::IMeshBuffer *, unsigned>(mb, offset));
+        offset += mb->getVertexCount();
+    }
+
+    if (ibo[tp])
+        glDeleteBuffers(1, &ibo[tp]);
+    glGenBuffers(1, &ibo[tp]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo[tp]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u16) * getIndexTotalCount(tp), 0, GL_STATIC_DRAW);
+
+    offset = 0;
+    for (unsigned i = 0; i < storedCPUBuffer[tp].size(); i++)
+    {
+        scene::IMeshBuffer *mb = storedCPUBuffer[tp][i];
+        assert(mb->getIndexType() == video::EIT_16BIT);
+        glBufferSubData(GL_ARRAY_BUFFER, offset * sizeof(u16), mb->getIndexCount() * sizeof(u16), mb->getIndices());
+        mappedBaseIndex[tp].insert(std::pair<scene::IMeshBuffer *, unsigned>(mb, offset));
+        offset += mb->getIndexCount();
+    }
+}
+
+size_t VBOGatherer::getVertexPitch(enum VTXTYPE tp) const
+{
+    switch (tp)
+    {
+    case VTXTYPE_STANDARD:
+        return getVertexPitchFromType(video::EVT_STANDARD);
+    case VTXTYPE_TCOORD:
+        return getVertexPitchFromType(video::EVT_2TCOORDS);
+    case VTXTYPE_TANGENT:
+        return getVertexPitchFromType(video::EVT_TANGENTS);
+    default:
+        assert(0 && "Wrong vtxtype");
+        return -1;
+    }
+}
+
+size_t VBOGatherer::getIndexTotalCount(enum VTXTYPE tp) const
+{
+    unsigned sz = 0;
+
+    for (unsigned i = 0; i < storedCPUBuffer[tp].size(); i++)
+    {
+        scene::IMeshBuffer *mb = storedCPUBuffer[tp][i];
+        sz += mb->getIndexCount();
+    }
+    return sz;
+}
+
+size_t VBOGatherer::getVertexTotalCount(enum VTXTYPE tp) const
+{
+    unsigned sz = 0;
+
+    for (unsigned i = 0; i < storedCPUBuffer[tp].size(); i++)
+    {
+        scene::IMeshBuffer *mb = storedCPUBuffer[tp][i];
+        sz += mb->getVertexCount();
+    }
+    return sz;
+}
+
+VBOGatherer::VTXTYPE VBOGatherer::getVTXTYPE(video::E_VERTEX_TYPE type)
+{
+    switch (type)
+    {
+    case video::EVT_STANDARD:
+        return VTXTYPE_STANDARD;
+    case video::EVT_2TCOORDS:
+        return VTXTYPE_TCOORD;
+    case video::EVT_TANGENTS:
+        return VTXTYPE_TANGENT;
+    default:
+        assert(0 && "Wrong vtxtype");
+    }
+};
+
+std::pair<unsigned, unsigned> VBOGatherer::getBase(scene::IMeshBuffer *mb)
+{
+    VTXTYPE tp = getVTXTYPE(mb->getVertexType());
+    std::map<scene::IMeshBuffer*, unsigned>::iterator It;
+    It = mappedBaseVertex[tp].find(mb);
+    if (It != mappedBaseVertex[tp].end())
+    {
+        unsigned vtx = It->second;
+        It = mappedBaseIndex[tp].find(mb);
+        assert(It != mappedBaseIndex[tp].end());
+        return std::pair<unsigned, unsigned>(vtx, It->second);
+    }
+
+    assert(mappedBaseIndex[tp].find(mb) == mappedBaseIndex[tp].end());
+    storedCPUBuffer[tp].push_back(mb);
+    regenerateBuffer(tp);
+}
+
+static VBOGatherer *gatherersingleton = 0;
+
+std::pair<unsigned, unsigned> getVAOOffsetAndBase(scene::IMeshBuffer *mb)
+{
+    if (!gatherersingleton)
+        gatherersingleton = new VBOGatherer();
+    return gatherersingleton->getBase(mb);
+}
+
 void setTexture(unsigned TextureUnit, GLuint TextureId, GLenum MagFilter, GLenum MinFilter, bool allowAF)
 {
     glActiveTexture(GL_TEXTURE0 + TextureUnit);
