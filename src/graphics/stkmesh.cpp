@@ -135,7 +135,6 @@ GLMesh allocateMeshBuffer(scene::IMeshBuffer* mb)
         {
             indexSize = sizeof(u16);
             result.IndexType = GL_UNSIGNED_SHORT;
-            getVAOOffsetAndBase(mb);
             break;
         }
         case irr::video::EIT_32BIT:
@@ -529,7 +528,8 @@ void drawTransparentObject(const GLMesh &mesh, const core::matrix4 &ModelViewPro
     MeshShader::TransparentShader::setUniforms(ModelViewProjectionMatrix, TextureMatrix, 0);
 
     assert(mesh.vao_first_pass);
-    glBindVertexArray(mesh.vao_first_pass);
+//    glBindVertexArray(mesh.vao_first_pass);
+    glDrawElementsBaseVertex(ptype, count, itype, (GLvoid *)mesh.offset, mesh.baseVertex);
     glDrawElements(ptype, count, itype, 0);
 }
 
@@ -734,7 +734,7 @@ void initvaostate(GLMesh &mesh, GeometricMaterial GeoMat, ShadedMaterial ShadedM
         mesh.vao_displace_pass = createVAO(mesh.vertex_buffer, mesh.index_buffer, MeshShader::DisplaceShader::attrib_position, MeshShader::DisplaceShader::attrib_texcoord, MeshShader::DisplaceShader::attrib_second_texcoord, -1, -1, -1, -1, mesh.Stride);
 }
 
-void initvaostate(GLMesh &mesh, TransparentMaterial TranspMat)
+void initvaostate(GLMesh &mesh, TransparentMaterial TranspMat, scene::IMeshBuffer *mb)
 {
     switch (TranspMat)
     {
@@ -744,6 +744,9 @@ void initvaostate(GLMesh &mesh, TransparentMaterial TranspMat)
         break;
     case TM_DEFAULT:
     case TM_ADDITIVE:
+        std::pair<unsigned, unsigned> p = getVAOOffsetAndBase(mb);
+        mesh.baseVertex = p.first;
+        mesh.offset = p.second;
         if (World::getWorld() != NULL && World::getWorld()->isFogEnabled())
             mesh.vao_first_pass = createVAO(mesh.vertex_buffer, mesh.index_buffer,
                 MeshShader::TransparentFogShader::attrib_position, MeshShader::TransparentFogShader::attrib_texcoord, -1, -1, -1, -1, MeshShader::TransparentFogShader::attrib_color, mesh.Stride);

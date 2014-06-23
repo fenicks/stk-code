@@ -57,12 +57,14 @@ struct GLMesh {
     size_t IndexCount;
     size_t Stride;
     core::matrix4 TextureMatrix;
+    unsigned offset;
+    unsigned baseVertex;
 };
 
 GLuint createVAO(GLuint vbo, GLuint idx, GLuint attrib_position, GLuint attrib_texcoord, GLuint attrib_second_texcoord, GLuint attrib_normal, GLuint attrib_tangent, GLuint attrib_bitangent, GLuint attrib_color, size_t stride);
 GLMesh allocateMeshBuffer(scene::IMeshBuffer* mb);
 void initvaostate(GLMesh &mesh, GeometricMaterial GeoMat, ShadedMaterial ShadedMat);
-void initvaostate(GLMesh &mesh, TransparentMaterial TranspMat);
+void initvaostate(GLMesh &mesh, TransparentMaterial TranspMat, scene::IMeshBuffer *);
 core::matrix4 computeMVP(const core::matrix4 &ModelViewProjectionMatrix);
 core::matrix4 computeTIMV(const core::matrix4 &TransposeInverseModelView);
 bool isObject(video::E_MATERIAL_TYPE type);

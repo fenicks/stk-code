@@ -48,6 +48,7 @@ PFNGLBLENDEQUATIONPROC glBlendEquation;
 PFNGLVERTEXATTRIBDIVISORPROC glVertexAttribDivisor;
 PFNGLDRAWARRAYSINSTANCEDPROC glDrawArraysInstanced;
 PFNGLDRAWELEMENTSINSTANCEDPROC glDrawElementsInstanced;
+PFNGLDRAWELEMENTSBASEVERTEXPROC glDrawElementsBaseVertex;
 PFNGLDELETEBUFFERSPROC glDeleteBuffers;
 PFNGLGENVERTEXARRAYSPROC glGenVertexArrays;
 PFNGLBINDVERTEXARRAYPROC glBindVertexArray;
@@ -201,6 +202,7 @@ void initGL()
     glVertexAttribDivisor = (PFNGLVERTEXATTRIBDIVISORPROC)IRR_OGL_LOAD_EXTENSION("glVertexAttribDivisor");
     glDrawArraysInstanced = (PFNGLDRAWARRAYSINSTANCEDPROC)IRR_OGL_LOAD_EXTENSION("glDrawArraysInstanced");
     glDrawElementsInstanced = (PFNGLDRAWELEMENTSINSTANCEDPROC)IRR_OGL_LOAD_EXTENSION("glDrawElementsInstanced");
+    glDrawElementsBaseVertex = (PFNGLDRAWELEMENTSBASEVERTEXPROC)IRR_OGL_LOAD_EXTENSION("glDrawElementsBaseVertex");
     glDeleteBuffers = (PFNGLDELETEBUFFERSPROC)IRR_OGL_LOAD_EXTENSION("glDeleteBuffers");
     glGenVertexArrays = (PFNGLGENVERTEXARRAYSPROC)IRR_OGL_LOAD_EXTENSION("glGenVertexArrays");
     glBindVertexArray = (PFNGLBINDVERTEXARRAYPROC)IRR_OGL_LOAD_EXTENSION("glBindVertexArray");
@@ -476,11 +478,12 @@ void saveCompressedTexture(const std::string& compressed_tex)
 class VBOGatherer
 {
     enum VTXTYPE { VTXTYPE_STANDARD, VTXTYPE_TCOORD, VTXTYPE_TANGENT, VTXTYPE_COUNT };
-    GLuint vbo[VTXTYPE_COUNT], ibo[VTXTYPE_COUNT];
+    GLuint vbo[VTXTYPE_COUNT], ibo[VTXTYPE_COUNT], vao[VTXTYPE_COUNT];
     std::vector<scene::IMeshBuffer *> storedCPUBuffer[VTXTYPE_COUNT];
     std::map<scene::IMeshBuffer*, unsigned> mappedBaseVertex[VTXTYPE_COUNT], mappedBaseIndex[VTXTYPE_COUNT];
 
     void regenerateBuffer(enum VTXTYPE);
+    void regenerateVAO();
     size_t getVertexPitch(enum VTXTYPE) const;
     size_t getIndexTotalCount(enum VTXTYPE) const;
     size_t getVertexTotalCount(enum VTXTYPE) const;
@@ -488,6 +491,7 @@ class VBOGatherer
 public:
     VBOGatherer();
     std::pair<unsigned, unsigned> getBase(scene::IMeshBuffer *);
+    unsigned getVAO(video::E_VERTEX_TYPE type) { return vao[getVTXTYPE(type)]; }
 };
 
 VBOGatherer::VBOGatherer()
@@ -532,6 +536,19 @@ void VBOGatherer::regenerateBuffer(enum VTXTYPE tp)
         mappedBaseIndex[tp].insert(std::pair<scene::IMeshBuffer *, unsigned>(mb, offset));
         offset += mb->getIndexCount();
     }
+}
+
+void VBOGatherer::regenerateVAO()
+{
+    if (vao[VTXTYPE_TCOORD])
+        glDeleteVertexArrays(1, &vao[VTXTYPE_TCOORD]);
+    glGenVertexArrays(1, &vao[VTXTYPE_TCOORD]);
+    glBindVertexArray(vao[VTXTYPE_TCOORD]);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[VTXTYPE_TCOORD]);
+    glEnableVertexAttribArray(MeshShader::TransparentShader::attrib_position);
+    glEnableVertexAttribArray(MeshShader::TransparentShader::attrib_texcoord);
+    glVertexAttribPointer(MeshShader::TransparentShader::attrib_position, 3, GL_FLOAT, GL_FALSE, getVertexPitch(VTXTYPE_TCOORD), 0);
+    glVertexAttribPointer(MeshShader::TransparentShader::attrib_texcoord, 2, GL_FLOAT, GL_FALSE, getVertexPitch(VTXTYPE_TCOORD), (GLvoid*)28);
 }
 
 size_t VBOGatherer::getVertexPitch(enum VTXTYPE tp) const
@@ -605,6 +622,7 @@ std::pair<unsigned, unsigned> VBOGatherer::getBase(scene::IMeshBuffer *mb)
     assert(mappedBaseIndex[tp].find(mb) == mappedBaseIndex[tp].end());
     storedCPUBuffer[tp].push_back(mb);
     regenerateBuffer(tp);
+    regenerateVAO();
 }
 
 static VBOGatherer *gatherersingleton = 0;
@@ -615,6 +633,12 @@ std::pair<unsigned, unsigned> getVAOOffsetAndBase(scene::IMeshBuffer *mb)
         gatherersingleton = new VBOGatherer();
     return gatherersingleton->getBase(mb);
 }
+
+unsigned getVAO(video::E_VERTEX_TYPE type)
+{
+    return gatherersingleton->getVAO(type);
+}
+
 
 void setTexture(unsigned TextureUnit, GLuint TextureId, GLenum MagFilter, GLenum MinFilter, bool allowAF)
 {

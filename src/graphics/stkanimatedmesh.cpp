@@ -103,7 +103,7 @@ void STKAnimatedMesh::render()
             if (rnd->isTransparent())
             {
                 TransparentMaterial TranspMat = MaterialTypeToTransparentMaterial(type, MaterialTypeParam);
-                initvaostate(mesh, TranspMat);
+                initvaostate(mesh, TranspMat, mb);
                 TransparentMesh[TranspMat].push_back(&mesh);
             }
             else
