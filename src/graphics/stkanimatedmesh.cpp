@@ -221,22 +221,17 @@ void STKAnimatedMesh::render()
 
     if (irr_driver->getPhase() == TRANSPARENT_PASS)
     {
-        ModelViewProjectionMatrix = computeMVP(AbsoluteTransformation);
-
-        if (!TransparentMesh[TM_BUBBLE].empty())
-            glUseProgram(MeshShader::BubbleShader::Program);
-
         GLMesh* mesh;
         for_in(mesh, TransparentMesh[TM_DEFAULT])
         {
             TransparentMeshes<TM_DEFAULT>::MeshSet.push_back(mesh);
-            TransparentMeshes<TM_DEFAULT>::MVPSet.push_back(ModelViewProjectionMatrix);
+            TransparentMeshes<TM_DEFAULT>::MVPSet.push_back(AbsoluteTransformation);
         }
 
         for_in(mesh, TransparentMesh[TM_ADDITIVE])
         {
             TransparentMeshes<TM_ADDITIVE>::MeshSet.push_back(mesh);
-            TransparentMeshes<TM_ADDITIVE>::MVPSet.push_back(ModelViewProjectionMatrix);
+            TransparentMeshes<TM_ADDITIVE>::MVPSet.push_back(AbsoluteTransformation);
         }
         return;
     }

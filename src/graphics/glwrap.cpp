@@ -537,9 +537,6 @@ void VBOGatherer::regenerateBuffer(enum VTXTYPE tp)
         scene::IMeshBuffer *mb = storedCPUBuffer[tp][i];
         assert(mb->getIndexType() == video::EIT_16BIT);
         u16 *v = mb->getIndices();
-        for (unsigned j = 0; j < mb->getIndexCount(); j++)
-            printf("%d ", v[j]);
-        printf("\n");
         glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset * sizeof(u16), mb->getIndexCount() * sizeof(u16), mb->getIndices());
         mappedBaseIndex[tp].insert(std::pair<scene::IMeshBuffer *, unsigned>(mb, offset));
         offset += mb->getIndexCount();
@@ -555,10 +552,19 @@ void VBOGatherer::regenerateVAO(enum VTXTYPE tp)
     glGenVertexArrays(1, &vao[tp]);
     glBindVertexArray(vao[tp]);
     glBindBuffer(GL_ARRAY_BUFFER, vbo[tp]);
+    // Ordered from position in vbo
+    // Position
     glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(MeshShader::TransparentShader::attrib_texcoord);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, getVertexPitch(tp), 0);
-    glVertexAttribPointer(MeshShader::TransparentShader::attrib_texcoord, 2, GL_FLOAT, GL_FALSE, getVertexPitch(tp), (GLvoid*)28);
+    // Normal
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, getVertexPitch(tp), (GLvoid*)12);
+    // Color
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, getVertexPitch(tp), (GLvoid*)24);
+    // Texcoord
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, getVertexPitch(tp), (GLvoid*)28);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo[tp]);
     glBindVertexArray(0);
 }
