@@ -496,6 +496,9 @@ public:
 
 VBOGatherer::VBOGatherer()
 {
+    vao[0] = vao[1] = vao[2] = 0;
+    vbo[0] = vbo[1] = vbo[2] = 0;
+    ibo[0] = ibo[1] = ibo[2] = 0;
 }
 
 void VBOGatherer::regenerateBuffer(enum VTXTYPE tp)
@@ -507,7 +510,7 @@ void VBOGatherer::regenerateBuffer(enum VTXTYPE tp)
     glGenBuffers(1, &vbo[tp]);
     glBindBuffer(GL_ARRAY_BUFFER, vbo[tp]);
     size_t cnt = getVertexPitch(tp) * getVertexTotalCount(tp);
-    glBufferData(GL_ARRAY_BUFFER, cnt, 0, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, cnt, 0, GL_DYNAMIC_DRAW);
 
     unsigned offset = 0;
     for (unsigned i = 0; i < storedCPUBuffer[tp].size(); i++)
@@ -526,17 +529,23 @@ void VBOGatherer::regenerateBuffer(enum VTXTYPE tp)
         glDeleteBuffers(1, &ibo[tp]);
     glGenBuffers(1, &ibo[tp]);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo[tp]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u16) * getIndexTotalCount(tp), 0, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u16)* getIndexTotalCount(tp), 0, GL_DYNAMIC_DRAW);
 
     offset = 0;
     for (unsigned i = 0; i < storedCPUBuffer[tp].size(); i++)
     {
         scene::IMeshBuffer *mb = storedCPUBuffer[tp][i];
         assert(mb->getIndexType() == video::EIT_16BIT);
-        glBufferSubData(GL_ARRAY_BUFFER, offset * sizeof(u16), mb->getIndexCount() * sizeof(u16), mb->getIndices());
+        u16 *v = mb->getIndices();
+        for (unsigned j = 0; j < mb->getIndexCount(); j++)
+            printf("%d ", v[j]);
+        printf("\n");
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset * sizeof(u16), mb->getIndexCount() * sizeof(u16), mb->getIndices());
         mappedBaseIndex[tp].insert(std::pair<scene::IMeshBuffer *, unsigned>(mb, offset));
         offset += mb->getIndexCount();
     }
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void VBOGatherer::regenerateVAO(enum VTXTYPE tp)
@@ -546,11 +555,12 @@ void VBOGatherer::regenerateVAO(enum VTXTYPE tp)
     glGenVertexArrays(1, &vao[tp]);
     glBindVertexArray(vao[tp]);
     glBindBuffer(GL_ARRAY_BUFFER, vbo[tp]);
-    glEnableVertexAttribArray(MeshShader::TransparentShader::attrib_position);
+    glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(MeshShader::TransparentShader::attrib_texcoord);
-    glVertexAttribPointer(MeshShader::TransparentShader::attrib_position, 3, GL_FLOAT, GL_FALSE, getVertexPitch(tp), 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, getVertexPitch(tp), 0);
     glVertexAttribPointer(MeshShader::TransparentShader::attrib_texcoord, 2, GL_FLOAT, GL_FALSE, getVertexPitch(tp), (GLvoid*)28);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo[tp]);
+    glBindVertexArray(0);
 }
 
 size_t VBOGatherer::getVertexPitch(enum VTXTYPE tp) const

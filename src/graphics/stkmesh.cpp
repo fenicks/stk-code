@@ -528,9 +528,7 @@ void drawTransparentObject(const GLMesh &mesh, const core::matrix4 &ModelViewPro
     MeshShader::TransparentShader::setUniforms(ModelViewProjectionMatrix, TextureMatrix, 0);
 
     assert(mesh.vao_first_pass);
-//    glBindVertexArray(mesh.vao_first_pass);
     glDrawElementsBaseVertex(ptype, count, itype, (GLvoid *)mesh.offset, mesh.baseVertex);
-    glDrawElements(ptype, count, itype, 0);
 }
 
 void drawTransparentFogObject(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix, const core::matrix4 &TextureMatrix)

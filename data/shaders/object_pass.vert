@@ -25,7 +25,7 @@ uniform mat4 TextureMatrix =
          0., 0., 0., 1.);
 
 #if __VERSION__ >= 130
-in vec3 Position;
+layout(location = 0) in vec3 Position;
 in vec2 Texcoord;
 in vec2 SecondTexcoord;
 in vec3 Normal;

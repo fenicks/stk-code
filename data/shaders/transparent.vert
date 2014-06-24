@@ -2,7 +2,7 @@ uniform mat4 ModelViewProjectionMatrix;
 uniform mat4 TextureMatrix;
 
 #if __VERSION__ >= 130
-in vec3 Position;
+layout(location = 0) in vec3 Position;
 in vec2 Texcoord;
 in vec4 Color;
 out vec2 uv;
