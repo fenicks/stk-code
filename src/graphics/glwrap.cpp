@@ -492,6 +492,14 @@ public:
     VBOGatherer();
     std::pair<unsigned, unsigned> getBase(scene::IMeshBuffer *);
     unsigned getVAO(video::E_VERTEX_TYPE type) { return vao[getVTXTYPE(type)]; }
+    void reset() { 
+        for (unsigned i = 0; i < VTXTYPE_COUNT; i++)
+        {
+            storedCPUBuffer[i].clear();
+            mappedBaseVertex[i].clear();
+            mappedBaseIndex[i].clear();
+        }
+    }
 };
 
 VBOGatherer::VBOGatherer()
@@ -538,7 +546,7 @@ void VBOGatherer::regenerateBuffer(enum VTXTYPE tp)
         assert(mb->getIndexType() == video::EIT_16BIT);
         u16 *v = mb->getIndices();
         glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset * sizeof(u16), mb->getIndexCount() * sizeof(u16), mb->getIndices());
-        mappedBaseIndex[tp].insert(std::pair<scene::IMeshBuffer *, unsigned>(mb, offset));
+        mappedBaseIndex[tp].insert(std::pair<scene::IMeshBuffer *, unsigned>(mb, offset * sizeof(u16)));
         offset += mb->getIndexCount();
     }
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -588,7 +596,6 @@ size_t VBOGatherer::getVertexPitch(enum VTXTYPE tp) const
 size_t VBOGatherer::getIndexTotalCount(enum VTXTYPE tp) const
 {
     unsigned sz = 0;
-
     for (unsigned i = 0; i < storedCPUBuffer[tp].size(); i++)
     {
         scene::IMeshBuffer *mb = storedCPUBuffer[tp][i];
@@ -627,20 +634,20 @@ VBOGatherer::VTXTYPE VBOGatherer::getVTXTYPE(video::E_VERTEX_TYPE type)
 std::pair<unsigned, unsigned> VBOGatherer::getBase(scene::IMeshBuffer *mb)
 {
     VTXTYPE tp = getVTXTYPE(mb->getVertexType());
-    std::map<scene::IMeshBuffer*, unsigned>::iterator It;
-    It = mappedBaseVertex[tp].find(mb);
-    if (It != mappedBaseVertex[tp].end())
+    if (mappedBaseVertex[tp].find(mb) == mappedBaseVertex[tp].end())
     {
-        unsigned vtx = It->second;
-        It = mappedBaseIndex[tp].find(mb);
-        assert(It != mappedBaseIndex[tp].end());
-        return std::pair<unsigned, unsigned>(vtx, It->second);
+        assert(mappedBaseIndex[tp].find(mb) == mappedBaseIndex[tp].end());
+        storedCPUBuffer[tp].push_back(mb);
+        regenerateBuffer(tp);
+        regenerateVAO(tp);
     }
 
-    assert(mappedBaseIndex[tp].find(mb) == mappedBaseIndex[tp].end());
-    storedCPUBuffer[tp].push_back(mb);
-    regenerateBuffer(tp);
-    regenerateVAO(tp);
+    std::map<scene::IMeshBuffer*, unsigned>::iterator It;
+    It = mappedBaseVertex[tp].find(mb);
+    unsigned vtx = It->second;
+    It = mappedBaseIndex[tp].find(mb);
+    assert(It != mappedBaseIndex[tp].end());
+    return std::pair<unsigned, unsigned>(vtx, It->second);
 }
 
 static VBOGatherer *gatherersingleton = 0;
@@ -655,6 +662,12 @@ std::pair<unsigned, unsigned> getVAOOffsetAndBase(scene::IMeshBuffer *mb)
 unsigned getVAO(video::E_VERTEX_TYPE type)
 {
     return gatherersingleton->getVAO(type);
+}
+
+void resetVAO()
+{
+    if (gatherersingleton)
+        gatherersingleton->reset();
 }
 
 

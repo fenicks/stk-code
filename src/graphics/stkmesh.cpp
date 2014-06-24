@@ -528,7 +528,7 @@ void drawTransparentObject(const GLMesh &mesh, const core::matrix4 &ModelViewPro
     MeshShader::TransparentShader::setUniforms(ModelViewProjectionMatrix, TextureMatrix, 0);
 
     assert(mesh.vao_first_pass);
-    glDrawElementsBaseVertex(ptype, count, itype, (GLvoid *)mesh.offset, mesh.baseVertex);
+    glDrawElementsBaseVertex(ptype, count, itype, (GLvoid *)(mesh.offset), mesh.baseVertex);
 }
 
 void drawTransparentFogObject(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix, const core::matrix4 &TextureMatrix)
@@ -558,12 +558,10 @@ void drawTransparentFogObject(const GLMesh &mesh, const core::matrix4 &ModelView
         setTexture(0, getTextureGLuint(mesh.textures[0]), GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR, true);
     }
 
-    glUseProgram(MeshShader::TransparentFogShader::Program);
     MeshShader::TransparentFogShader::setUniforms(ModelViewProjectionMatrix, TextureMatrix, fogmax, startH, endH, start, end, col, Camera::getCamera(0)->getCameraSceneNode()->getAbsolutePosition(), 0);
 
     assert(mesh.vao_first_pass);
-    glBindVertexArray(mesh.vao_first_pass);
-    glDrawElements(ptype, count, itype, 0);
+    glDrawElementsBaseVertex(ptype, count, itype, (GLvoid *)(mesh.offset), mesh.baseVertex);
 }
 
 void drawBubble(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix)

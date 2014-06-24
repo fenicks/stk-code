@@ -264,6 +264,7 @@ void Track::reset()
  */
 void Track::cleanup()
 {
+    resetVAO();
     QuadGraph::destroy();
     ItemManager::destroy();
 

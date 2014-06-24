@@ -659,6 +659,7 @@ void IrrDriver::renderTransparent()
     if (World::getWorld() && World::getWorld()->isFogEnabled())
     {
         glUseProgram(MeshShader::TransparentFogShader::Program);
+        glBindVertexArray(getVAO(E_VERTEX_TYPE::EVT_STANDARD));
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         for (unsigned i = 0; i < TransparentMeshes<TM_DEFAULT>::MeshSet.size(); i++)
             drawTransparentFogObject(*TransparentMeshes<TM_DEFAULT>::MeshSet[i], TransparentMeshes<TM_DEFAULT>::MVPSet[i], TransparentMeshes<TM_DEFAULT>::MeshSet[i]->TextureMatrix);
