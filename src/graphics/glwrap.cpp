@@ -529,7 +529,6 @@ void VBOGatherer::regenerateBuffer(enum VTXTYPE tp)
         const irr::video::E_VERTEX_TYPE vType = mb->getVertexType();
         const c8* vbuf = static_cast<const c8*>(vertices);
         glBufferSubData(GL_ARRAY_BUFFER, offset * getVertexPitch(tp), mb->getVertexCount() * getVertexPitch(tp), vbuf);
-        mappedBaseVertex[tp].insert(std::pair<scene::IMeshBuffer *, unsigned>(mb, offset));
         offset += mb->getVertexCount();
     }
 
@@ -546,7 +545,6 @@ void VBOGatherer::regenerateBuffer(enum VTXTYPE tp)
         assert(mb->getIndexType() == video::EIT_16BIT);
         u16 *v = mb->getIndices();
         glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset * sizeof(u16), mb->getIndexCount() * sizeof(u16), mb->getIndices());
-        mappedBaseIndex[tp].insert(std::pair<scene::IMeshBuffer *, unsigned>(mb, offset * sizeof(u16)));
         offset += mb->getIndexCount();
     }
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -634,20 +632,16 @@ VBOGatherer::VTXTYPE VBOGatherer::getVTXTYPE(video::E_VERTEX_TYPE type)
 std::pair<unsigned, unsigned> VBOGatherer::getBase(scene::IMeshBuffer *mb)
 {
     VTXTYPE tp = getVTXTYPE(mb->getVertexType());
-    if (mappedBaseVertex[tp].find(mb) == mappedBaseVertex[tp].end())
-    {
-        assert(mappedBaseIndex[tp].find(mb) == mappedBaseIndex[tp].end());
-        storedCPUBuffer[tp].push_back(mb);
-        regenerateBuffer(tp);
-        regenerateVAO(tp);
-    }
+    if (!mb->getIndexCount())
+        return std::pair<unsigned, unsigned>(0, 0);
+    unsigned base = getVertexTotalCount(tp);
+    unsigned offset = getIndexTotalCount(tp);
 
-    std::map<scene::IMeshBuffer*, unsigned>::iterator It;
-    It = mappedBaseVertex[tp].find(mb);
-    unsigned vtx = It->second;
-    It = mappedBaseIndex[tp].find(mb);
-    assert(It != mappedBaseIndex[tp].end());
-    return std::pair<unsigned, unsigned>(vtx, It->second);
+    storedCPUBuffer[tp].push_back(mb);
+    regenerateBuffer(tp);
+    regenerateVAO(tp);
+
+    return std::pair<unsigned, unsigned>(base, offset * sizeof(u16));
 }
 
 static VBOGatherer *gatherersingleton = 0;
