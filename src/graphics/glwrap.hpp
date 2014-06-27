@@ -68,6 +68,7 @@ extern PFNGLUNIFORM4IPROC glUniform4i;
 extern PFNGLGETPROGRAMIVPROC glGetProgramiv;
 extern PFNGLGETPROGRAMINFOLOGPROC glGetProgramInfoLog;
 extern PFNGLGETATTRIBLOCATIONPROC glGetAttribLocation;
+extern PFNGLBINDATTRIBLOCATIONPROC glBindAttribLocation;
 extern PFNGLBLENDEQUATIONPROC glBlendEquation;
 extern PFNGLVERTEXATTRIBDIVISORPROC glVertexAttribDivisor;
 extern PFNGLDRAWARRAYSINSTANCEDPROC glDrawArraysInstanced;
@@ -142,7 +143,27 @@ template<typename ... Types>
 GLint LoadProgram(Types ... args)
 {
     GLint ProgramID = glCreateProgram();
+    if (irr_driver->getGLSLVersion() < 330)
+    {
+        glBindAttribLocation(ProgramID, 0, "Position");
+        glBindAttribLocation(ProgramID, 1, "Normal");
+        glBindAttribLocation(ProgramID, 2, "Color");
+        glBindAttribLocation(ProgramID, 3, "Texcoord");
+        glBindAttribLocation(ProgramID, 4, "SecondTexcoord");
+        glBindAttribLocation(ProgramID, 5, "Tangent");
+        glBindAttribLocation(ProgramID, 6, "Bitangent");
+    }
     loadAndAttach(ProgramID, args...);
+    if (irr_driver->getGLSLVersion() < 330)
+    {
+        glBindAttribLocation(ProgramID, 0, "Position");
+        glBindAttribLocation(ProgramID, 1, "Normal");
+        glBindAttribLocation(ProgramID, 2, "Color");
+        glBindAttribLocation(ProgramID, 3, "Texcoord");
+        glBindAttribLocation(ProgramID, 4, "SecondTexcoord");
+        glBindAttribLocation(ProgramID, 5, "Tangent");
+        glBindAttribLocation(ProgramID, 6, "Bitangent");
+    }
     glLinkProgram(ProgramID);
 
     GLint Result = GL_FALSE;
