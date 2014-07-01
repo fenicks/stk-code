@@ -155,6 +155,9 @@ GLint LoadProgram(Types ... args)
         glBindAttribLocation(ProgramID, 4, "SecondTexcoord");
         glBindAttribLocation(ProgramID, 5, "Tangent");
         glBindAttribLocation(ProgramID, 6, "Bitangent");
+        glBindAttribLocation(ProgramID, 7, "Origin");
+        glBindAttribLocation(ProgramID, 8, "Orientation");
+        glBindAttribLocation(ProgramID, 9, "Scale");
     }
     glLinkProgram(ProgramID);
 
@@ -212,7 +215,7 @@ public:
     FrameBuffer(const std::vector <GLuint> &RTTs, GLuint DS, size_t w, size_t h, bool layered = false);
     ~FrameBuffer();
     void Bind();
-    std::vector<GLuint> &getRTT() { return RenderTargets; }
+    const std::vector<GLuint> &getRTT() const { return RenderTargets; }
     GLuint &getDepthTexture() { assert(DepthTexture); return DepthTexture; }
     size_t getWidth() const { return width; }
     size_t getHeight() const { return height; }
@@ -237,7 +240,7 @@ void draw3DLine(const core::vector3df& start,
 void draw2DImageFromRTT(GLuint texture, size_t texture_w, size_t texture_h,
     const core::rect<s32>& destRect,
     const core::rect<s32>& sourceRect, const core::rect<s32>* clipRect,
-    bool useAlphaChannelOfTexture);
+    const video::SColor &colors, bool useAlphaChannelOfTexture);
 
 void draw2DImage(const irr::video::ITexture* texture, const irr::core::rect<s32>& destRect,
     const irr::core::rect<s32>& sourceRect, const irr::core::rect<s32>* clipRect,
