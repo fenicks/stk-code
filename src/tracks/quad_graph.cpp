@@ -411,6 +411,8 @@ void QuadGraph::createMesh(bool show_invisible,
     m.Lighting         = false;
     if(enable_transparency)
         m.MaterialType = video::EMT_TRANSPARENT_ALPHA_CHANNEL;
+    if (irr_driver->isGLSL())
+        m.MaterialType = irr_driver->getShader(ES_OBJECT_UNLIT);
     m_mesh             = irr_driver->createQuadMesh(&m);
     m_mesh_buffer      = m_mesh->getMeshBuffer(0);
     assert(m_mesh_buffer->getVertexType()==video::EVT_STANDARD);
