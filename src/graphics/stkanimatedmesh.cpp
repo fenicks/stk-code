@@ -116,14 +116,10 @@ void STKAnimatedMesh::render()
         {
             if (irr_driver->getPhase() == SOLID_NORMAL_AND_DEPTH_PASS || irr_driver->getPhase() == TRANSPARENT_PASS)
             {
-                glBindVertexArray(0);
+                void *ptr = getPointer(mb->getVertexType());
+                void *buf = (char*&) ptr + (GLmeshes[i].vaoBaseVertex * GLmeshes[i].Stride);
                 size_t size = mb->getVertexCount() * GLmeshes[i].Stride;
-                glBindBuffer(GL_ARRAY_BUFFER, getVBO(mb->getVertexType()));
-                GLbitfield bitfield = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT;
-                void * buf = glMapBufferRange(GL_ARRAY_BUFFER, GLmeshes[i].vaoBaseVertex * GLmeshes[i].Stride, size, bitfield);
                 memcpy(buf, mb->getVertices(), size);
-                glUnmapBuffer(GL_ARRAY_BUFFER);
-                glBindBuffer(GL_ARRAY_BUFFER, 0);
             }
         }
         if (mb)

@@ -84,6 +84,9 @@ extern PFNGLTEXBUFFERPROC glTexBuffer;
 extern PFNGLBUFFERSUBDATAPROC glBufferSubData;
 extern PFNGLMAPBUFFERPROC glMapBuffer;
 extern PFNGLMAPBUFFERRANGEPROC glMapBufferRange;
+extern PFNGLFLUSHMAPPEDBUFFERRANGEPROC glFlushMappedBufferRange;
+extern PFNGLMEMORYBARRIERPROC glMemoryBarrier;
+extern PFNGLBUFFERSTORAGEPROC glBufferStorage;
 extern PFNGLUNMAPBUFFERPROC glUnmapBuffer;
 extern PFNGLFENCESYNCPROC glFenceSync;
 extern PFNGLCLIENTWAITSYNCPROC glClientWaitSync;
@@ -249,6 +252,7 @@ std::pair<unsigned, unsigned> getVAOOffsetAndBase(scene::IMeshBuffer *mb);
 unsigned getVAO(video::E_VERTEX_TYPE type);
 unsigned getVBO(video::E_VERTEX_TYPE type);
 void resetVAO();
+void *getPointer(video::E_VERTEX_TYPE type);
 
 void draw3DLine(const core::vector3df& start,
     const core::vector3df& end, irr::video::SColor color);

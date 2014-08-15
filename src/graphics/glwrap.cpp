@@ -58,6 +58,9 @@ PFNGLTEXBUFFERPROC glTexBuffer;
 PFNGLBUFFERSUBDATAPROC glBufferSubData;
 PFNGLMAPBUFFERPROC glMapBuffer;
 PFNGLMAPBUFFERRANGEPROC glMapBufferRange;
+PFNGLFLUSHMAPPEDBUFFERRANGEPROC glFlushMappedBufferRange;
+PFNGLMEMORYBARRIERPROC glMemoryBarrier;
+PFNGLBUFFERSTORAGEPROC glBufferStorage;
 PFNGLUNMAPBUFFERPROC glUnmapBuffer;
 PFNGLFENCESYNCPROC glFenceSync;
 PFNGLCLIENTWAITSYNCPROC glClientWaitSync;
@@ -188,6 +191,9 @@ void initGL()
     glBufferData = (PFNGLBUFFERDATAPROC)IRR_OGL_LOAD_EXTENSION("glBufferData");
     glMapBuffer = (PFNGLMAPBUFFERPROC)IRR_OGL_LOAD_EXTENSION("glMapBuffer");
     glMapBufferRange = (PFNGLMAPBUFFERRANGEPROC)IRR_OGL_LOAD_EXTENSION("glMapBufferRange");
+    glFlushMappedBufferRange = (PFNGLFLUSHMAPPEDBUFFERRANGEPROC)IRR_OGL_LOAD_EXTENSION("glFlushMappedBufferRange");
+    glMemoryBarrier = (PFNGLMEMORYBARRIERPROC)IRR_OGL_LOAD_EXTENSION("glMemoryBarrier");
+    glBufferStorage = (PFNGLBUFFERSTORAGEPROC)IRR_OGL_LOAD_EXTENSION("glBufferStorage");
     glUnmapBuffer = (PFNGLUNMAPBUFFERPROC)IRR_OGL_LOAD_EXTENSION("glUnmapBuffer");
     glFenceSync = (PFNGLFENCESYNCPROC)IRR_OGL_LOAD_EXTENSION("glFenceSync");
     glClientWaitSync = (PFNGLCLIENTWAITSYNCPROC)IRR_OGL_LOAD_EXTENSION("glClientWaitSync");
@@ -555,6 +561,7 @@ class VBOGatherer
     void *vtx_mirror[VTXTYPE_COUNT], *idx_mirror[VTXTYPE_COUNT];
     size_t vtx_cnt[VTXTYPE_COUNT], idx_cnt[VTXTYPE_COUNT];
     std::map<scene::IMeshBuffer*, unsigned> mappedBaseVertex[VTXTYPE_COUNT], mappedBaseIndex[VTXTYPE_COUNT];
+    void *Pointers[VTXTYPE_COUNT];
 
     void regenerateBuffer(enum VTXTYPE);
     void regenerateVAO(enum VTXTYPE);
@@ -566,6 +573,7 @@ public:
     std::pair<unsigned, unsigned> getBase(scene::IMeshBuffer *);
     unsigned getVBO(video::E_VERTEX_TYPE type) { return vbo[getVTXTYPE(type)]; }
     unsigned getVAO(video::E_VERTEX_TYPE type) { return vao[getVTXTYPE(type)]; }
+    void *getPointers(video::E_VERTEX_TYPE type);
     ~VBOGatherer()
     {
         for (unsigned i = 0; i < VTXTYPE_COUNT; i++)
@@ -598,7 +606,9 @@ void VBOGatherer::regenerateBuffer(enum VTXTYPE tp)
         glDeleteBuffers(1, &vbo[tp]);
     glGenBuffers(1, &vbo[tp]);
     glBindBuffer(GL_ARRAY_BUFFER, vbo[tp]);
-    glBufferData(GL_ARRAY_BUFFER, vtx_cnt[tp] * getVertexPitch(tp), vtx_mirror[tp], GL_DYNAMIC_DRAW);
+    glBufferStorage(GL_ARRAY_BUFFER, vtx_cnt[tp] * getVertexPitch(tp), vtx_mirror[tp], GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT);
+    Pointers[tp] = glMapBufferRange(GL_ARRAY_BUFFER, 0, vtx_cnt[tp] * getVertexPitch(tp), GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT);
+//    glBufferData(GL_ARRAY_BUFFER, vtx_cnt[tp] * getVertexPitch(tp), vtx_mirror[tp], GL_DYNAMIC_DRAW);
 
     if (ibo[tp])
         glDeleteBuffers(1, &ibo[tp]);
@@ -746,6 +756,11 @@ std::pair<unsigned, unsigned> VBOGatherer::getBase(scene::IMeshBuffer *mb)
     return std::pair<unsigned, unsigned>(vtx, It->second);
 }
 
+void *VBOGatherer::getPointers(video::E_VERTEX_TYPE type)
+{
+    return Pointers[type];
+}
+
 static VBOGatherer *gatherersingleton = 0;
 
 std::pair<unsigned, unsigned> getVAOOffsetAndBase(scene::IMeshBuffer *mb)
@@ -774,6 +789,11 @@ void resetVAO()
     if (gatherersingleton)
         delete gatherersingleton;
     gatherersingleton = 0;
+}
+
+void *getPointer(video::E_VERTEX_TYPE type)
+{
+    return gatherersingleton->getPointers(type);
 }
 
 ScopedGPUTimer::ScopedGPUTimer(GPUTimer &timer)
