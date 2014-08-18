@@ -22,6 +22,7 @@
 #include <vector>
 #include "config/user_config.hpp"
 #include "utils/singleton.hpp"
+#include <cstdint>
 
 typedef unsigned int    GLuint;
 typedef unsigned int    GLenum;
@@ -178,6 +179,7 @@ enum SamplerType {
 };
 
 void setTextureSampler(GLenum, GLuint, GLuint, GLuint);
+void setTextureHandle(GLuint, uint64_t);
 
 #define GL_TEXTURE_2D                     0x0DE1
 
@@ -390,6 +392,7 @@ private:
     void AssignTextureNames_impl(GLuint Program, GLuint TexUnit, const char *name, Args...args...)
     {
         GLuint location = getUniformLocation(Program, name);
+        TextureHandleLocation.push_back(location);
         glUniform1i(location, TexUnit);
         TextureUnits.push_back(TexUnit);
         AssignTextureNames_impl<N + 1>(Program, args...);
@@ -398,6 +401,7 @@ private:
 protected:
     std::vector<GLuint> TextureUnits;
     std::vector<GLenum> TextureType;
+    std::vector<GLuint> TextureHandleLocation;
     template<typename...Args>
     void AssignSamplerNames(GLuint Program, Args...args)
     {
@@ -422,6 +426,16 @@ public:
         }
         else
             BindTexture<tp...>::exec(TextureUnits, args, 0);
+    }
+
+    void SetTextureHandles(const std::vector<uint64_t> &args)
+    {
+        assert(args.size() == sizeof...(tp) && "Too much texture handle provided");
+        for (unsigned i = 0; i < args.size(); i++)
+        {
+            setTextureHandle(TextureHandleLocation[i], args[i]);
+        }
+
     }
 };
 

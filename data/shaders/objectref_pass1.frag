@@ -1,7 +1,7 @@
 #extension GL_ARB_bindless_texture : enable
 
 #ifdef GL_ARB_bindless_texture
-layout(binding = 0, bindless_sampler) uniform sampler2D tex;
+layout(bindless_sampler) uniform sampler2D tex;
 #else
 uniform sampler2D tex;
 #endif

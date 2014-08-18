@@ -602,6 +602,11 @@ void setTextureSampler(GLenum tp, GLuint texunit, GLuint tid, GLuint sid)
     glBindSampler(texunit, sid);
 }
 
+void setTextureHandle(GLuint location, uint64_t handle)
+{
+    glUniformHandleui64ARB(location, handle);
+}
+
 
 GLuint createNearestSampler()
 {
