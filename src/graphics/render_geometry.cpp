@@ -129,7 +129,9 @@ void renderMeshes1stPass(const std::vector<TexUnit> &TexUnits, std::vector<STK::
             if (!mesh.textures[j])
                 mesh.textures[j] = getUnicolorTexture(video::SColor(255, 255, 255, 255));
             compressTexture(mesh.textures[j], TexUnits[j].m_premul_alpha);
-            Textures.push_back(getTextureGLuint(mesh.textures[TexUnits[j].m_id]));
+//            Textures.push_back(getTextureGLuint(mesh.textures[TexUnits[j].m_id]));
+            if (!mesh.TextureHandles)
+                mesh.TextureHandles = glGetTextureSamplerHandleARB(getTextureGLuint(mesh.textures[TexUnits[j].m_id]), Shader::getInstance()->SamplersId[j]);
         }
         if (mesh.VAOType != VertexType)
         {
@@ -138,7 +140,13 @@ void renderMeshes1stPass(const std::vector<TexUnit> &TexUnits, std::vector<STK::
 #endif
             continue;
         }
-        Shader::getInstance()->SetTextureUnits(Textures);
+//        Shader::getInstance()->SetTextureUnits(Textures);
+        if (mesh.TextureHandles)
+        {
+            if (!glIsTextureHandleResidentARB(mesh.TextureHandles))
+                glMakeTextureHandleResidentARB(mesh.TextureHandles);
+            glUniformHandleui64ARB(glGetUniformLocation(Shader::getInstance()->Program, "tex"), mesh.TextureHandles);
+        }
         custom_unroll_args<List...>::template exec(Shader::getInstance(), meshes->at(i));
     }
 }
@@ -302,7 +310,7 @@ void renderMeshes2ndPass(const std::vector<TexUnit> &TexUnits, std::vector<STK::
                 mesh.textures[j] = getUnicolorTexture(video::SColor(255, 255, 255, 255));
             compressTexture(mesh.textures[j], TexUnits[j].m_premul_alpha);
             Textures.push_back(getTextureGLuint(mesh.textures[TexUnits[j].m_id]));
-            if (irr_driver->getLightViz())
+/*            if (irr_driver->getLightViz())
             {
                 GLint swizzleMask[] = { GL_ONE, GL_ONE, GL_ONE, GL_ALPHA };
                 glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
@@ -311,7 +319,7 @@ void renderMeshes2ndPass(const std::vector<TexUnit> &TexUnits, std::vector<STK::
             {
                 GLint swizzleMask[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
                 glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
-            }
+            }*/
         }
 
         if (mesh.VAOType != VertexType)

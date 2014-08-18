@@ -396,7 +396,6 @@ private:
     }
 
 protected:
-    std::vector<GLuint> SamplersId;
     std::vector<GLuint> TextureUnits;
     std::vector<GLenum> TextureType;
     template<typename...Args>
@@ -410,6 +409,7 @@ protected:
     }
 
 public:
+    std::vector<GLuint> SamplersId;
     void SetTextureUnits(const std::vector<GLuint> &args)
     {
         assert(args.size() == sizeof...(tp) && "Too much texture unit provided");
