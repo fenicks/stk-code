@@ -301,14 +301,14 @@ void renderMeshes2ndPass(const std::vector<TexUnit> &TexUnits, std::vector<STK::
     glBindVertexArray(getVAO(VertexType));
     for (unsigned i = 0; i < meshes->size(); i++)
     {
-        std::vector<uint64_t> Textures;
+        std::vector<GLuint> Textures;
         GLMesh &mesh = *(STK::tuple_get<0>(meshes->at(i)));
         for (unsigned j = 0; j < TexUnits.size(); j++)
         {
             if (!mesh.textures[TexUnits[j].m_id])
                 mesh.textures[TexUnits[j].m_id] = getUnicolorTexture(video::SColor(255, 255, 255, 255));
             compressTexture(mesh.textures[TexUnits[j].m_id], TexUnits[j].m_premul_alpha);
-//            Textures.push_back(getTextureGLuint(mesh.textures[TexUnits[j].m_id]));
+            Textures.push_back(getTextureGLuint(mesh.textures[TexUnits[j].m_id]));
 /*            if (irr_driver->getLightViz())
             {
                 GLint swizzleMask[] = { GL_ONE, GL_ONE, GL_ONE, GL_ALPHA };
@@ -319,11 +319,11 @@ void renderMeshes2ndPass(const std::vector<TexUnit> &TexUnits, std::vector<STK::
                 GLint swizzleMask[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
                 glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
             }*/
-            if (!mesh.TextureHandles[j])
-                mesh.TextureHandles[j] = glGetTextureSamplerHandleARB(getTextureGLuint(mesh.textures[TexUnits[j].m_id]), Shader::getInstance()->SamplersId[j]);
-            if (!glIsTextureHandleResidentARB(mesh.TextureHandles[j]))
-                glMakeTextureHandleResidentARB(mesh.TextureHandles[j]);
-            Textures.push_back(mesh.TextureHandles[j]);
+//            if (!mesh.TextureHandles[j])
+//                mesh.TextureHandles[j] = glGetTextureSamplerHandleARB(getTextureGLuint(mesh.textures[TexUnits[j].m_id]), Shader::getInstance()->SamplersId[j]);
+//            if (!glIsTextureHandleResidentARB(mesh.TextureHandles[j]))
+//                glMakeTextureHandleResidentARB(mesh.TextureHandles[j]);
+//            Textures.push_back(mesh.TextureHandles[j]);
         }
 
         if (mesh.VAOType != VertexType)
@@ -333,8 +333,8 @@ void renderMeshes2ndPass(const std::vector<TexUnit> &TexUnits, std::vector<STK::
 #endif
             continue;
         }
-//        Shader::getInstance()->SetTextureUnits(Textures);
-        Shader::getInstance()->SetTextureHandles(Textures);
+        Shader::getInstance()->SetTextureUnits(Textures);
+//        Shader::getInstance()->SetTextureHandles(Textures);
         custom_unroll_args<List...>::template exec(Shader::getInstance(), meshes->at(i));
     }
 }
