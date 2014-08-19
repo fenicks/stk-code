@@ -434,12 +434,12 @@ void IrrDriver::renderSolidSecondPass()
             TexUnit(0, true)
         ), ListMatGrass::getInstance());
 
-        renderMeshes2ndPass<MeshShader::ObjectUnlitShader, video::EVT_STANDARD, 1>(TexUnits(
+/*        renderMeshes2ndPass<MeshShader::ObjectUnlitShader, video::EVT_STANDARD, 1>(TexUnits(
             TexUnit(0, true)
         ), ListMatUnlit::getInstance());
         renderMeshes2ndPass<MeshShader::ObjectUnlitShader, video::EVT_STANDARD, 1>(TexUnits(
             TexUnit(0, true)
-            ), AnimatedListMatUnlit::getInstance());
+            ), AnimatedListMatUnlit::getInstance());*/
 
         renderMeshes2ndPass<MeshShader::SplattingShader, video::EVT_2TCOORDS, 1>(TexUnits(
             TexUnit(1, false),
@@ -669,14 +669,20 @@ void renderShadow(const std::vector<GLuint> TextureUnits, const std::vector<STK:
     glBindVertexArray(getVAO(VertexType));
     for (unsigned i = 0; i < t->size(); i++)
     {
-        std::vector<GLuint> Textures;
-        const GLMesh *mesh = STK::tuple_get<0>(t->at(i));
+        std::vector<uint64_t> Textures;
+        GLMesh *mesh = STK::tuple_get<0>(t->at(i));
         for (unsigned j = 0; j < TextureUnits.size(); j++)
         {
             compressTexture(mesh->textures[TextureUnits[j]], true);
-            Textures.push_back(getTextureGLuint(mesh->textures[TextureUnits[j]]));
+//            Textures.push_back(getTextureGLuint(mesh->textures[TextureUnits[j]]));
+            if (!mesh->TextureHandles[j])
+                mesh->TextureHandles[j] = glGetTextureSamplerHandleARB(getTextureGLuint(mesh->textures[TextureUnits[j]]), T::getInstance()->SamplersId[j]);
+            if (!glIsTextureHandleResidentARB(mesh->TextureHandles[j]))
+                glMakeTextureHandleResidentARB(mesh->TextureHandles[j]);
+            Textures.push_back(mesh->TextureHandles[j]);
         }
-        T::getInstance()->SetTextureUnits(Textures);
+//        T::getInstance()->SetTextureUnits(Textures);
+        T::getInstance()->SetTextureHandles(Textures);
         shadow_custom_unroll_args<List...>::template exec<T>(T::getInstance(), t->at(i));
     }
 }

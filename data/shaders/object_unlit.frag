@@ -1,4 +1,10 @@
+#extension GL_ARB_bindless_texture : enable
+
+#ifdef GL_ARB_bindless_texture
+layout(bindless_sampler) uniform sampler2D tex;
+#else
 uniform sampler2D tex;
+#endif
 
 in vec2 uv;
 in vec4 color;
