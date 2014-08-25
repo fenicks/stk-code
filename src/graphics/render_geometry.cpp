@@ -209,7 +209,7 @@ void renderInstancedMeshes1stPass(const std::vector<TexUnit> &TexUnits, std::vec
     }
 }
 
-static GLsync m_sync;
+
 template<typename Shader, MeshMaterial Mat, video::E_VERTEX_TYPE VT, typename...Args>
 void multidraw1stPass(Args...args)
 {
@@ -247,30 +247,9 @@ void IrrDriver::renderSolidFirstPass()
     ListMatNormalMap::getInstance()->clear();
     ListMatGrass::getInstance()->clear();
     ListMatSplatting::getInstance()->clear();
-    ListInstancedMatDefault::getInstance()->clear();
-    ListInstancedMatAlphaRef::getInstance()->clear();
-    ListInstancedMatGrass::getInstance()->clear();
-    ListInstancedMatNormalMap::getInstance()->clear();
-    // Add a 30 ms timeout
-    if (!m_sync)
-        m_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    GLenum reason = glClientWaitSync(m_sync, GL_SYNC_FLUSH_COMMANDS_BIT, 30000000);
-/*    switch (reason)
-    {
-    case GL_ALREADY_SIGNALED:
-        printf("Already Signaled\n");
-        break;
-    case GL_TIMEOUT_EXPIRED:
-        printf("Timeout Expired\n");
-        break;
-    case GL_CONDITION_SATISFIED:
-        printf("Condition Satisfied\n");
-        break;
-    case GL_WAIT_FAILED:
-        printf("Wait Failed\n");
-        break;
-    }*/
-    m_scene_manager->drawAll(scene::ESNRP_SOLID);
+
+
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, SolidPassCmd::getInstance()->drawindirectcmd);
 
     if (!UserConfigParams::m_dynamic_lights)
         return;
@@ -280,103 +259,55 @@ void IrrDriver::renderSolidFirstPass()
 
         std::vector<TexUnit> object_pass1_texunits = TexUnits(TexUnit(0, true) );
         renderMeshes1stPass<MeshShader::ObjectPass1Shader, video::EVT_STANDARD, 2, 1>(object_pass1_texunits, ListMatDefault::getInstance());
-        renderMeshes1stPass<MeshShader::ObjectPass1Shader, video::EVT_STANDARD, 2, 1>(object_pass1_texunits, ListMatSphereMap::getInstance());
-        renderMeshes1stPass<MeshShader::ObjectPass1Shader, video::EVT_2TCOORDS, 2, 1>(object_pass1_texunits, ListMatDetails::getInstance());
         renderMeshes1stPass<MeshShader::ObjectPass1Shader, video::EVT_2TCOORDS, 2, 1>(object_pass1_texunits, ListMatSplatting::getInstance());
         renderMeshes1stPass<MeshShader::ObjectRefPass1Shader, video::EVT_STANDARD, 3, 2, 1>(object_pass1_texunits, ListMatUnlit::getInstance());
         renderMeshes1stPass<MeshShader::ObjectRefPass1Shader, video::EVT_STANDARD, 3, 2, 1>(TexUnits(TexUnit(0, true)), ListMatAlphaRef::getInstance());
-        renderMeshes1stPass<MeshShader::GrassPass1Shader, video::EVT_STANDARD, 3, 2, 1>(TexUnits(TexUnit(0, true)), ListMatGrass::getInstance());
-        renderMeshes1stPass<MeshShader::NormalMapShader, video::EVT_TANGENTS, 2, 1>(TexUnits(
-            TexUnit(1, false),
-            TexUnit(0, true)
-        ), ListMatNormalMap::getInstance());
 
         if (UserConfigParams::m_azdo)
         {
-            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, SolidPassCmd::getInstance()->drawindirectcmd);
-            DrawElementsIndirectCommand *CommandBufferPtr = SolidPassCmd::getInstance()->Ptr;
-
-            size_t offset = 0;
-            SolidPassCmd::getInstance()->Offset[MAT_DEFAULT] = offset;
-            for (unsigned i = 0; i < ListInstancedMatDefault::getInstance()->size(); i++)
-            {
-                const GLMesh &mesh = *(STK::tuple_get<0>(ListInstancedMatDefault::getInstance()->at(i)));
-                size_t &instanceCount = STK::tuple_get<1>(ListInstancedMatDefault::getInstance()->at(i));
-                DrawElementsIndirectCommand &CurrentCommand = CommandBufferPtr[offset++];
-                CurrentCommand.instanceCount = instanceCount;
-                CurrentCommand.baseVertex = mesh.vaoBaseVertex;
-                CurrentCommand.count = mesh.IndexCount;
-                CurrentCommand.firstIndex = mesh.vaoOffset / 2;
-                CurrentCommand.baseInstance = mesh.vaoBaseInstance;
-            }
-            SolidPassCmd::getInstance()->Size[MAT_DEFAULT] = ListInstancedMatDefault::getInstance()->size();
-
-            SolidPassCmd::getInstance()->Offset[MAT_NORMAL_MAP] = offset;
-            for (unsigned i = 0; i < ListInstancedMatNormalMap::getInstance()->size(); i++)
-            {
-                const GLMesh &mesh = *(STK::tuple_get<0>(ListInstancedMatNormalMap::getInstance()->at(i)));
-                size_t &instanceCount = STK::tuple_get<1>(ListInstancedMatNormalMap::getInstance()->at(i));
-                DrawElementsIndirectCommand &CurrentCommand = CommandBufferPtr[offset++];
-                CurrentCommand.instanceCount = instanceCount;
-                CurrentCommand.baseVertex = mesh.vaoBaseVertex;
-                CurrentCommand.count = mesh.IndexCount;
-                CurrentCommand.firstIndex = mesh.vaoOffset / 2;
-                CurrentCommand.baseInstance = mesh.vaoBaseInstance;
-            }
-            SolidPassCmd::getInstance()->Size[MAT_NORMAL_MAP] = ListInstancedMatNormalMap::getInstance()->size();
-
-            SolidPassCmd::getInstance()->Offset[MAT_ALPHA_REF] = offset;
-            for (unsigned i = 0; i < ListInstancedMatAlphaRef::getInstance()->size(); i++)
-            {
-                const GLMesh &mesh = *(STK::tuple_get<0>(ListInstancedMatAlphaRef::getInstance()->at(i)));
-                size_t &instanceCount = STK::tuple_get<1>(ListInstancedMatAlphaRef::getInstance()->at(i));
-                DrawElementsIndirectCommand &CurrentCommand = CommandBufferPtr[offset++];
-                CurrentCommand.instanceCount = instanceCount;
-                CurrentCommand.baseVertex = mesh.vaoBaseVertex;
-                CurrentCommand.count = mesh.IndexCount;
-                CurrentCommand.firstIndex = mesh.vaoOffset / 2;
-                CurrentCommand.baseInstance = mesh.vaoBaseInstance;
-            }
-            SolidPassCmd::getInstance()->Size[MAT_ALPHA_REF] = ListInstancedMatAlphaRef::getInstance()->size();
-
-            SolidPassCmd::getInstance()->Offset[MAT_GRASS] = offset;
-            for (unsigned i = 0; i < ListInstancedMatGrass::getInstance()->size(); i++)
-            {
-                const GLMesh &mesh = *(STK::tuple_get<0>(ListInstancedMatGrass::getInstance()->at(i)));
-                size_t &instanceCount = STK::tuple_get<1>(ListInstancedMatGrass::getInstance()->at(i));
-                DrawElementsIndirectCommand &CurrentCommand = CommandBufferPtr[offset++];
-                CurrentCommand.instanceCount = instanceCount;
-                CurrentCommand.baseVertex = mesh.vaoBaseVertex;
-                CurrentCommand.count = mesh.IndexCount;
-                CurrentCommand.firstIndex = mesh.vaoOffset / 2;
-                CurrentCommand.baseInstance = mesh.vaoBaseInstance;
-            }
-            SolidPassCmd::getInstance()->Size[MAT_GRASS] = ListInstancedMatGrass::getInstance()->size();
-#ifdef Multi_Draw_Indirect
             multidraw1stPass<MeshShader::InstancedObjectPass1Shader, MAT_DEFAULT, video::EVT_STANDARD>();
             multidraw1stPass<MeshShader::InstancedObjectRefPass1Shader, MAT_ALPHA_REF, video::EVT_STANDARD>();
             multidraw1stPass<MeshShader::InstancedNormalMapShader, MAT_NORMAL_MAP, video::EVT_TANGENTS>();
-            core::vector3df dir = ListInstancedMatGrass::getInstance()->empty() ? core::vector3df(0., 0., 0.) : STK::tuple_get<2>(ListInstancedMatGrass::getInstance()->at(0));
+            multidraw1stPass<MeshShader::InstancedObjectPass1Shader, MAT_SPHEREMAP, video::EVT_STANDARD>();
+            multidraw1stPass<MeshShader::InstancedObjectPass1Shader, MAT_DETAIL, video::EVT_2TCOORDS>();
+            multidraw1stPass<MeshShader::InstancedObjectRefPass1Shader, MAT_UNLIT, video::EVT_STANDARD>();
+            core::vector3df dir = ListInstancedMatGrass::getInstance()->empty() ? core::vector3df(0., 0., 0.) : STK::tuple_get<3>(ListInstancedMatGrass::getInstance()->at(0));
             multidraw1stPass<MeshShader::InstancedGrassPass1Shader, MAT_GRASS, video::EVT_STANDARD>(dir);
-#endif
         }
         else
         {
             if (irr_driver->hasARB_base_instance())
                 glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(video::EVT_STANDARD, InstanceTypeDefault));
+            // Default
             renderInstancedMeshes1stPass<MeshShader::InstancedObjectPass1Shader, video::EVT_STANDARD>(
                 TexUnits(TexUnit(0, true)),
                 ListInstancedMatDefault::getInstance());
-            if (irr_driver->hasARB_base_instance())
-                glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(video::EVT_STANDARD, InstanceTypeDefault));
+            // Alpha ref
             renderInstancedMeshes1stPass<MeshShader::InstancedObjectRefPass1Shader, video::EVT_STANDARD>(
                 TexUnits(TexUnit(0, true)),
                 ListInstancedMatAlphaRef::getInstance());
-            if (irr_driver->hasARB_base_instance())
+            // Unlit
+            renderInstancedMeshes1stPass<MeshShader::InstancedObjectPass1Shader, video::EVT_STANDARD>(
+                TexUnits(TexUnit(0, true)),
+                ListInstancedMatUnlit::getInstance());
+            // Spheremap
+            renderInstancedMeshes1stPass<MeshShader::InstancedObjectPass1Shader, video::EVT_STANDARD>(
+                TexUnits(TexUnit(0, true)),
+                ListInstancedMatSphereMap::getInstance());
+            // Grass
                 glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(video::EVT_STANDARD, InstanceTypeDefault));
             renderInstancedMeshes1stPass<MeshShader::InstancedGrassPass1Shader, video::EVT_STANDARD, 2>(
                 TexUnits(TexUnit(0, true)),
                 ListInstancedMatGrass::getInstance());
+
+            // Detail
+            if (irr_driver->hasARB_base_instance())
+                glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(video::EVT_2TCOORDS, InstanceTypeDefault));
+            renderInstancedMeshes1stPass<MeshShader::InstancedObjectPass1Shader, video::EVT_2TCOORDS>(
+                TexUnits(TexUnit(0, true)),
+                ListInstancedMatDetails::getInstance());
+
+            // Normal Map
             if (irr_driver->hasARB_base_instance())
                 glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(video::EVT_TANGENTS, InstanceTypeDefault));
             renderInstancedMeshes1stPass<MeshShader::InstancedNormalMapShader, video::EVT_TANGENTS>(
@@ -458,7 +389,6 @@ void multidraw2ndPass(const std::vector<uint64_t> &Handles, Args... args)
     }
 }
 
-
 void IrrDriver::renderSolidSecondPass()
 {
     SColor clearColor(0, 150, 150, 150);
@@ -508,27 +438,17 @@ void IrrDriver::renderSolidSecondPass()
     {
         ScopedGPUTimer Timer(getGPUTimer(Q_SOLID_PASS2));
 
-        m_scene_manager->drawAll(scene::ESNRP_SOLID);
-
         std::vector<GLuint> DiffSpecSSAOTex = createVector<GLuint>(m_rtts->getRenderTarget(RTT_DIFFUSE), m_rtts->getRenderTarget(RTT_SPECULAR), m_rtts->getRenderTarget(RTT_HALF1_R));
 
         renderMeshes2ndPass<MeshShader::ObjectPass2Shader, video::EVT_STANDARD, 3, 1>(TexUnits(
             TexUnit(0, true)
         ), ListMatDefault::getInstance(),
         createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle), DiffSpecSSAOTex);
+
         renderMeshes2ndPass<MeshShader::ObjectRefPass2Shader, video::EVT_STANDARD, 3, 1 >(TexUnits(
             TexUnit(0, true)
             ), ListMatAlphaRef::getInstance(), createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle), DiffSpecSSAOTex);
-        renderMeshes2ndPass<MeshShader::SphereMapShader, video::EVT_STANDARD, 2, 1>(TexUnits(
-            TexUnit(0, true)
-            ), ListMatSphereMap::getInstance(), createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle), DiffSpecSSAOTex);
-        renderMeshes2ndPass<MeshShader::DetailledObjectPass2Shader, video::EVT_2TCOORDS, 1>(TexUnits(
-            TexUnit(0, true),
-            TexUnit(1, true)
-            ), ListMatDetails::getInstance(), createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle), DiffSpecSSAOTex);
-        renderMeshes2ndPass<MeshShader::GrassPass2Shader, video::EVT_STANDARD, 3, 1>(TexUnits(
-            TexUnit(0, true)
-            ), ListMatGrass::getInstance(), createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle), DiffSpecSSAOTex);
+
         renderMeshes2ndPass<MeshShader::ObjectUnlitShader, video::EVT_STANDARD, 3, 1>(TexUnits(
             TexUnit(0, true)
             ), ListMatUnlit::getInstance(), createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle), DiffSpecSSAOTex);
@@ -540,9 +460,6 @@ void IrrDriver::renderSolidSecondPass()
             TexUnit(4, true),
             TexUnit(5, true)
             ), ListMatSplatting::getInstance(), createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle), DiffSpecSSAOTex);
-        renderMeshes2ndPass<MeshShader::ObjectPass2Shader, video::EVT_TANGENTS, 3, 1>(TexUnits(
-            TexUnit(0, true)
-            ), ListMatNormalMap::getInstance(), createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle), DiffSpecSSAOTex);
 
         if (UserConfigParams::m_azdo)
         {
@@ -550,7 +467,10 @@ void IrrDriver::renderSolidSecondPass()
             multidraw2ndPass<MeshShader::InstancedObjectPass2Shader, MAT_DEFAULT, video::EVT_STANDARD>(createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle, 0));
             multidraw2ndPass<MeshShader::InstancedObjectPass2Shader, MAT_NORMAL_MAP, video::EVT_TANGENTS>(createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle, 0));
             multidraw2ndPass<MeshShader::InstancedObjectRefPass2Shader, MAT_ALPHA_REF, video::EVT_STANDARD>(createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle, 0));
-            core::vector3df dir = ListInstancedMatGrass::getInstance()->empty() ? core::vector3df(0., 0., 0.) : STK::tuple_get<2>(ListInstancedMatGrass::getInstance()->at(0));
+            multidraw2ndPass<MeshShader::InstancedSphereMapShader, MAT_SPHEREMAP, video::EVT_STANDARD>(createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle, 0));
+            multidraw2ndPass<MeshShader::InstancedDetailledObjectPass2Shader, MAT_DETAIL, video::EVT_2TCOORDS>(createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle, 0, 0));
+            multidraw2ndPass<MeshShader::InstancedObjectUnlitShader, MAT_UNLIT, video::EVT_STANDARD>(createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle, 0));
+            core::vector3df dir = ListInstancedMatGrass::getInstance()->empty() ? core::vector3df(0., 0., 0.) : STK::tuple_get<3>(ListInstancedMatGrass::getInstance()->at(0));
             SunLightProvider * const cb = (SunLightProvider *)irr_driver->getCallback(ES_SUNLIGHT);
             multidraw2ndPass<MeshShader::InstancedGrassPass2Shader, MAT_GRASS, video::EVT_STANDARD>(createVector<uint64_t>(DiffuseHandle, SpecularHandle, SSAOHandle, DepthHandle, 0), dir, cb->getPosition());
 #endif
@@ -559,19 +479,38 @@ void IrrDriver::renderSolidSecondPass()
         {
             if (irr_driver->hasARB_base_instance())
                 glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(video::EVT_STANDARD, InstanceTypeDefault));
+            // Default
             renderInstancedMeshes2ndPass<MeshShader::InstancedObjectPass2Shader>(
                 TexUnits(TexUnit(0, true)),
                 ListInstancedMatDefault::getInstance(), DiffSpecSSAOTex);
+            // Alpha ref
+            renderInstancedMeshes2ndPass<MeshShader::InstancedObjectRefPass2Shader>(
+                TexUnits(TexUnit(0, true)),
+                ListInstancedMatAlphaRef::getInstance(), DiffSpecSSAOTex);
+            // Unlit
+            renderInstancedMeshes2ndPass<MeshShader::InstancedObjectUnlitShader>(
+                TexUnits(TexUnit(0, true)),
+                ListInstancedMatUnlit::getInstance(), DiffSpecSSAOTex);
+            // Spheremap
+            renderInstancedMeshes2ndPass<MeshShader::InstancedSphereMapShader>(
+                TexUnits(TexUnit(0, true)),
+                ListInstancedMatSphereMap::getInstance(), DiffSpecSSAOTex);
+
+            // Details
+            if (irr_driver->hasARB_base_instance())
+                glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(video::EVT_2TCOORDS, InstanceTypeDefault));
+            renderInstancedMeshes2ndPass<MeshShader::InstancedDetailledObjectPass2Shader>(
+                TexUnits(TexUnit(0, true), TexUnit(1, false)),
+                ListInstancedMatDetails::getInstance(), DiffSpecSSAOTex);
+
+            // Normal map
             if (irr_driver->hasARB_base_instance())
                 glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(video::EVT_TANGENTS, InstanceTypeDefault));
             renderInstancedMeshes2ndPass<MeshShader::InstancedObjectPass2Shader>(
                 TexUnits(TexUnit(0, true)),
                 ListInstancedMatNormalMap::getInstance(), DiffSpecSSAOTex);
-            if (irr_driver->hasARB_base_instance())
-                glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(video::EVT_STANDARD, InstanceTypeDefault));
-            renderInstancedMeshes2ndPass<MeshShader::InstancedObjectRefPass2Shader>(
-                TexUnits(TexUnit(0, true)),
-                ListInstancedMatAlphaRef::getInstance(), DiffSpecSSAOTex);
+
+            // Grass
             if (irr_driver->hasARB_base_instance())
                 glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(video::EVT_STANDARD, InstanceTypeDefault));
             DiffSpecSSAOTex.push_back(irr_driver->getDepthStencilTexture());
@@ -581,7 +520,6 @@ void IrrDriver::renderSolidSecondPass()
         }
 
     }
-    m_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 }
 
 template<enum E_VERTEX_TYPE VertexType, typename... TupleType>
@@ -676,12 +614,6 @@ void IrrDriver::renderTransparent()
     glEnable(GL_BLEND);
     glBlendEquation(GL_FUNC_ADD);
     glDisable(GL_CULL_FACE);
-    ListBlendTransparent::getInstance()->clear();
-    ListAdditiveTransparent::getInstance()->clear();
-    ListBlendTransparentFog::getInstance()->clear();
-    ListAdditiveTransparentFog::getInstance()->clear();
-    ListDisplacement::getInstance()->clear();
-    m_scene_manager->drawAll(scene::ESNRP_TRANSPARENT);
 
     if (irr_driver->hasARB_base_instance())
         glBindVertexArray(VAOManager::getInstance()->getVAO(EVT_STANDARD));
@@ -890,11 +822,15 @@ struct instanced_shadow_custom_unroll_args<N, List...>
     }
 };
 
-template<typename T, int...List, typename... Args>
+template<typename T, MeshMaterial Mat, int...List, typename... Args>
 void renderInstancedShadow(const std::vector<GLuint> TextureUnits, unsigned cascade, const std::vector<STK::Tuple<Args...> > *t)
 {
     glUseProgram(T::getInstance()->Program);
-    for (unsigned i = 0; i < t->size(); i++)
+    unsigned start = 0;
+    for (unsigned i = 0; i < cascade; i++)
+        start += ShadowPassCmd::getInstance()->Size[i][Mat];
+    unsigned end = start + ShadowPassCmd::getInstance()->Size[cascade][Mat];
+    for (unsigned i = start; i < end; i++)
     {
         std::vector<uint64_t> Handles;
         std::vector<GLuint> Textures;
@@ -914,7 +850,7 @@ template<typename Shader, MeshMaterial Mat, video::E_VERTEX_TYPE VT, typename...
 static void multidrawShadow(unsigned i, Args ...args)
 {
     glUseProgram(Shader::getInstance()->Program);
-    glBindVertexArray(VAOManager::getInstance()->getShadowInstanceVAO(VT, InstanceTypeDefault));
+    glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(VT, InstanceTypeShadow));
     if (ShadowPassCmd::getInstance()->Size[i][Mat])
     {
         Shader::getInstance()->setUniforms(i, args...);
@@ -935,7 +871,8 @@ void IrrDriver::renderShadows()
     glClear(GL_DEPTH_BUFFER_BIT);
     glDrawBuffer(GL_NONE);
 
-    irr_driver->setPhase(SHADOW_PASS);
+    std::vector<GLuint> noTexUnits;
+
     ListMatDefault::getInstance()->clear();
     ListMatAlphaRef::getInstance()->clear();
     ListMatSphereMap::getInstance()->clear();
@@ -944,85 +881,18 @@ void IrrDriver::renderShadows()
     ListMatNormalMap::getInstance()->clear();
     ListMatGrass::getInstance()->clear();
     ListMatSplatting::getInstance()->clear();
-    ListInstancedMatDefault::getInstance()->clear();
-    ListInstancedMatAlphaRef::getInstance()->clear();
-    ListInstancedMatGrass::getInstance()->clear();
-    ListInstancedMatNormalMap::getInstance()->clear();
-    m_scene_manager->drawAll(scene::ESNRP_SOLID);
-    size_t offset = 0;
+
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, ShadowPassCmd::getInstance()->drawindirectcmd);
 
     for (unsigned cascade = 0; cascade < 4; cascade++)
     {
         std::vector<GLuint> noTexUnits;
-        renderShadow<MeshShader::ShadowShader, EVT_STANDARD, 1>(noTexUnits, cascade, ListMatDefault::getInstance());
-        renderShadow<MeshShader::ShadowShader, EVT_STANDARD, 1>(noTexUnits, cascade, ListMatSphereMap::getInstance());
-        renderShadow<MeshShader::ShadowShader, EVT_2TCOORDS, 1>(noTexUnits, cascade, ListMatDetails::getInstance());
         renderShadow<MeshShader::ShadowShader, EVT_2TCOORDS, 1>(noTexUnits, cascade, ListMatSplatting::getInstance());
-        renderShadow<MeshShader::ShadowShader, EVT_TANGENTS, 1>(noTexUnits, cascade, ListMatNormalMap::getInstance());
-        renderShadow<MeshShader::RefShadowShader, EVT_STANDARD, 1>(std::vector<GLuint>{ 0 }, cascade, ListMatAlphaRef::getInstance());
-        renderShadow<MeshShader::RefShadowShader, EVT_STANDARD, 1>(std::vector<GLuint>{ 0 }, cascade, ListMatUnlit::getInstance());
-        renderShadow<MeshShader::GrassShadowShader, EVT_STANDARD, 3, 1>(std::vector<GLuint>{ 0 }, cascade, ListMatGrass::getInstance());
 
         if (UserConfigParams::m_azdo)
         {
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, ShadowPassCmd::getInstance()->drawindirectcmd);
-            DrawElementsIndirectCommand *ShadowCommandBufferPtr = ShadowPassCmd::getInstance()->Ptr;
 
-            ShadowPassCmd::getInstance()->Offset[cascade][MAT_DEFAULT] = offset;
-            for (unsigned i = 0; i < ListInstancedMatDefault::getInstance()->size(); i++)
-            {
-                const GLMesh &mesh = *(STK::tuple_get<0>(ListInstancedMatDefault::getInstance()->at(i)));
-                size_t &instanceCount = STK::tuple_get<1>(ListInstancedMatDefault::getInstance()->at(i));
-                DrawElementsIndirectCommand &CurrentCommand = ShadowCommandBufferPtr[offset++];
-                CurrentCommand.instanceCount = instanceCount;
-                CurrentCommand.baseVertex = mesh.vaoBaseVertex;
-                CurrentCommand.count = mesh.IndexCount;
-                CurrentCommand.firstIndex = mesh.vaoOffset / 2;
-                CurrentCommand.baseInstance = mesh.vaoBaseInstance;
-            }
-            ShadowPassCmd::getInstance()->Size[cascade][MAT_DEFAULT] = offset - ShadowPassCmd::getInstance()->Offset[cascade][MAT_DEFAULT];
-
-            ShadowPassCmd::getInstance()->Offset[cascade][MAT_NORMAL_MAP] = offset;
-            for (unsigned i = 0; i < ListInstancedMatNormalMap::getInstance()->size(); i++)
-            {
-                const GLMesh &mesh = *(STK::tuple_get<0>(ListInstancedMatNormalMap::getInstance()->at(i)));
-                size_t &instanceCount = STK::tuple_get<1>(ListInstancedMatNormalMap::getInstance()->at(i));
-                DrawElementsIndirectCommand &CurrentCommand = ShadowCommandBufferPtr[offset++];
-                CurrentCommand.instanceCount = instanceCount;
-                CurrentCommand.baseVertex = mesh.vaoBaseVertex;
-                CurrentCommand.count = mesh.IndexCount;
-                CurrentCommand.firstIndex = mesh.vaoOffset / 2;
-                CurrentCommand.baseInstance = mesh.vaoBaseInstance;
-            }
-            ShadowPassCmd::getInstance()->Size[cascade][MAT_NORMAL_MAP] = offset - ShadowPassCmd::getInstance()->Offset[cascade][MAT_NORMAL_MAP];
-
-            ShadowPassCmd::getInstance()->Offset[cascade][MAT_ALPHA_REF] = offset;
-            for (unsigned i = 0; i < ListInstancedMatAlphaRef::getInstance()->size(); i++)
-            {
-                const GLMesh &mesh = *(STK::tuple_get<0>(ListInstancedMatAlphaRef::getInstance()->at(i)));
-                size_t &instanceCount = STK::tuple_get<1>(ListInstancedMatAlphaRef::getInstance()->at(i));
-                DrawElementsIndirectCommand &CurrentCommand = ShadowCommandBufferPtr[offset++];
-                CurrentCommand.instanceCount = instanceCount;
-                CurrentCommand.baseVertex = mesh.vaoBaseVertex;
-                CurrentCommand.count = mesh.IndexCount;
-                CurrentCommand.firstIndex = mesh.vaoOffset / 2;
-                CurrentCommand.baseInstance = mesh.vaoBaseInstance;
-            }
-            ShadowPassCmd::getInstance()->Size[cascade][MAT_ALPHA_REF] = offset - ShadowPassCmd::getInstance()->Offset[cascade][MAT_ALPHA_REF];
-
-            ShadowPassCmd::getInstance()->Offset[cascade][MAT_GRASS] = offset;
-            for (unsigned i = 0; i < ListInstancedMatGrass::getInstance()->size(); i++)
-            {
-                const GLMesh &mesh = *(STK::tuple_get<0>(ListInstancedMatGrass::getInstance()->at(i)));
-                size_t &instanceCount = STK::tuple_get<1>(ListInstancedMatGrass::getInstance()->at(i));
-                DrawElementsIndirectCommand &CurrentCommand = ShadowCommandBufferPtr[offset++];
-                CurrentCommand.instanceCount = instanceCount;
-                CurrentCommand.baseVertex = mesh.vaoBaseVertex;
-                CurrentCommand.count = mesh.IndexCount;
-                CurrentCommand.firstIndex = mesh.vaoOffset / 2;
-                CurrentCommand.baseInstance = mesh.vaoBaseInstance;
-            }
-            ShadowPassCmd::getInstance()->Size[cascade][MAT_GRASS] = offset - ShadowPassCmd::getInstance()->Offset[cascade][MAT_GRASS];
 #ifdef Multi_Draw_Indirect
             multidrawShadow<MeshShader::InstancedShadowShader, MAT_DEFAULT, video::EVT_STANDARD>(cascade);
             multidrawShadow<MeshShader::InstancedShadowShader, MAT_NORMAL_MAP, video::EVT_TANGENTS>(cascade);
@@ -1034,17 +904,17 @@ void IrrDriver::renderShadows()
         else
         {
             if (irr_driver->hasARB_base_instance())
-                glBindVertexArray(VAOManager::getInstance()->getShadowInstanceVAO(video::EVT_STANDARD, InstanceTypeDefault));
-            renderInstancedShadow<MeshShader::InstancedShadowShader>(noTexUnits, cascade, ListInstancedMatDefault::getInstance());
+                glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(video::EVT_STANDARD, InstanceTypeShadow));
+            renderInstancedShadow<MeshShader::InstancedShadowShader, MAT_DEFAULT>(noTexUnits, cascade, ListInstancedMatDefault::getInstance());
             if (irr_driver->hasARB_base_instance())
-                glBindVertexArray(VAOManager::getInstance()->getShadowInstanceVAO(video::EVT_STANDARD, InstanceTypeDefault));
-            renderInstancedShadow<MeshShader::InstancedRefShadowShader>(std::vector<GLuint>{ 0 }, cascade, ListInstancedMatAlphaRef::getInstance());
+                glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(video::EVT_STANDARD, InstanceTypeShadow));
+            renderInstancedShadow<MeshShader::InstancedRefShadowShader, MAT_ALPHA_REF>(std::vector<GLuint>{ 0 }, cascade, ListInstancedMatAlphaRef::getInstance());
             if (irr_driver->hasARB_base_instance())
-                glBindVertexArray(VAOManager::getInstance()->getShadowInstanceVAO(video::EVT_STANDARD, InstanceTypeDefault));
-            renderInstancedShadow<MeshShader::InstancedGrassShadowShader, 2>(std::vector<GLuint>{ 0 }, cascade, ListInstancedMatGrass::getInstance());
+                glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(video::EVT_STANDARD, InstanceTypeShadow));
+            renderInstancedShadow<MeshShader::InstancedGrassShadowShader, MAT_GRASS, 2>(std::vector<GLuint>{ 0 }, cascade, ListInstancedMatGrass::getInstance());
             if (irr_driver->hasARB_base_instance())
-                glBindVertexArray(VAOManager::getInstance()->getShadowInstanceVAO(video::EVT_TANGENTS, InstanceTypeDefault));
-            renderInstancedShadow<MeshShader::InstancedShadowShader>(noTexUnits, cascade, ListInstancedMatNormalMap::getInstance());
+                glBindVertexArray(VAOManager::getInstance()->getInstanceVAO(video::EVT_TANGENTS, InstanceTypeShadow));
+            renderInstancedShadow<MeshShader::InstancedShadowShader, MAT_NORMAL_MAP>(noTexUnits, cascade, ListInstancedMatNormalMap::getInstance());
         }
     }
 
@@ -1097,6 +967,7 @@ void drawRSM(const core::matrix4 & rsm_matrix, const std::vector<GLuint> &Textur
 
 void IrrDriver::renderRSM()
 {
+    return;
     m_rtts->getRSM().Bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

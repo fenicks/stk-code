@@ -7,8 +7,6 @@
 class STKMeshSceneNode : public irr::scene::CMeshSceneNode
 {
 protected:
-    PtrVector<GLMesh, REF> MeshSolidMaterials[MAT_COUNT];
-    PtrVector<GLMesh, REF> TransparentMesh[TM_COUNT];
     std::vector<GLMesh> GLmeshes;
     core::matrix4 ModelViewProjectionMatrix;
     core::vector3df windDir;
@@ -25,6 +23,8 @@ protected:
     bool update_each_frame;
     bool isDisplacement;
 public:
+    PtrVector<GLMesh, REF> MeshSolidMaterials[MAT_COUNT];
+    PtrVector<GLMesh, REF> TransparentMesh[TM_COUNT];
     void setReloadEachFrame(bool);
     STKMeshSceneNode(irr::scene::IMesh* mesh, ISceneNode* parent, irr::scene::ISceneManager* mgr, irr::s32 id,
         const irr::core::vector3df& position = irr::core::vector3df(0, 0, 0),
@@ -36,6 +36,7 @@ public:
     virtual void setMesh(irr::scene::IMesh* mesh);
     virtual void OnRegisterSceneNode();
     virtual ~STKMeshSceneNode();
+    bool isImmediateDraw() const { return immediate_draw; }
     void setIsDisplacement(bool v) {
         isDisplacement = v;
         for (u32 i = 0; i < Mesh->getMeshBufferCount(); ++i)

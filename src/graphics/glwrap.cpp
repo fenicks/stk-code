@@ -597,9 +597,15 @@ VAOManager::VAOManager()
     idx_mirror[0] = idx_mirror[1] = idx_mirror[2] = NULL;
     instance_count[0] = 0;
 
-    glGenBuffers(1, &instance_vbo[0]);
-    glBindBuffer(GL_ARRAY_BUFFER, instance_vbo[0]);
-    glBufferData(GL_ARRAY_BUFFER, 10000 * sizeof(float)* 9, 0, GL_STATIC_DRAW);
+    for (unsigned i = 0; i < InstanceTypeCount; i++)
+    {
+        glGenBuffers(1, &instance_vbo[i]);
+        glBindBuffer(GL_ARRAY_BUFFER, instance_vbo[i]);
+#ifdef Buffer_Storage
+        glBufferStorage(GL_ARRAY_BUFFER, 10000 * sizeof(InstanceData), 0, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
+        Ptr[i] = (InstanceData *)glMapBufferRange(GL_ARRAY_BUFFER, 0, 10000 * sizeof(InstanceData), GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
+#endif
+    }
 }
 
 static void cleanVAOMap(std::map<std::pair<video::E_VERTEX_TYPE, InstanceType>, GLuint> Map)
@@ -635,7 +641,11 @@ VAOManager::~VAOManager()
         if (vao[i])
             glDeleteVertexArrays(1, &vao[i]);
     }
-    glDeleteBuffers(1, &instance_vbo[0]);
+    for (unsigned i = 0; i < InstanceTypeCount; i++)
+    {
+        glDeleteBuffers(1, &instance_vbo[i]);
+    }
+
 }
 
 void VAOManager::regenerateBuffer(enum VTXTYPE tp)

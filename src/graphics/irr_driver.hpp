@@ -353,12 +353,14 @@ private:
     /** Performance stats */
     unsigned             m_last_light_bucket_distance;
     unsigned             object_count[PASS_COUNT];
+    unsigned             poly_count[PASS_COUNT];
     u32                  m_renderpass;
     u32                  m_lensflare_query;
     bool                 m_query_issued;
     class STKMeshSceneNode *m_sun_interposer;
     scene::CLensFlareSceneNode *m_lensflare;
     scene::ICameraSceneNode *m_suncam;
+    scene::ICameraSceneNode *m_shadow_camnodes[4];
     float m_shadows_cam[4][24];
 
     std::vector<GlowData> m_glowing;
@@ -400,6 +402,9 @@ private:
     void renderLights(unsigned pointlightCount);
     void renderShadowsDebug();
     void doScreenShot();
+    void PrepareDrawCalls();
+    void compressDrawCalls();
+    void compressShadowsDrawCalls();
 public:
          IrrDriver();
         ~IrrDriver();
@@ -415,6 +420,7 @@ public:
         return sun_ortho_matrix;
     }
     void IncreaseObjectCount();
+    void IncreasePolyCount(unsigned);
     core::array<video::IRenderTarget> &getMainSetup();
     void updateConfigIfRelevant();
     void setAllMaterialFlags(scene::IMesh *mesh) const;

@@ -142,6 +142,7 @@ void saveCompressedTexture(const std::string& compressed_tex);
 enum InstanceType
 {
     InstanceTypeDefault,
+    InstanceTypeShadow,
     InstanceTypeCount,
 };
 
@@ -181,8 +182,9 @@ class VAOManager : public Singleton<VAOManager>
 {
     enum VTXTYPE { VTXTYPE_STANDARD, VTXTYPE_TCOORD, VTXTYPE_TANGENT, VTXTYPE_COUNT };
     GLuint vbo[VTXTYPE_COUNT], ibo[VTXTYPE_COUNT], vao[VTXTYPE_COUNT];
-    GLuint instance_vbo[1];
-    size_t instance_count[1];
+    GLuint instance_vbo[InstanceTypeCount];
+    size_t instance_count[InstanceTypeCount];
+    InstanceData *Ptr[InstanceTypeCount];
     void *VBOPtr[VTXTYPE_COUNT];
     std::vector<scene::IMeshBuffer *> storedCPUBuffer[VTXTYPE_COUNT];
     void *vtx_mirror[VTXTYPE_COUNT], *idx_mirror[VTXTYPE_COUNT];
@@ -201,11 +203,11 @@ public:
     VAOManager();
     std::pair<unsigned, unsigned> getBase(scene::IMeshBuffer *);
     size_t appendInstance(enum InstanceType, const std::vector<InstanceData> &instance_data);
+    InstanceData *getInstanceBuffer(InstanceType it) { return Ptr[it]; }
     unsigned getVBO(video::E_VERTEX_TYPE type) { return vbo[getVTXTYPE(type)]; }
     void *getVBOPtr(video::E_VERTEX_TYPE type) { return VBOPtr[getVTXTYPE(type)]; }
     unsigned getVAO(video::E_VERTEX_TYPE type) { return vao[getVTXTYPE(type)]; }
     unsigned getInstanceVAO(video::E_VERTEX_TYPE vt, enum InstanceType it) { return InstanceVAO[std::pair<video::E_VERTEX_TYPE, InstanceType>(vt, it)]; }
-    unsigned getShadowInstanceVAO(video::E_VERTEX_TYPE vt, enum InstanceType it) { return ShadowInstanceVAO[std::pair<video::E_VERTEX_TYPE, InstanceType>(vt, it)]; }
     ~VAOManager();
 };
 

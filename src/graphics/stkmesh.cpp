@@ -126,6 +126,7 @@ GLMesh allocateMeshBuffer(scene::IMeshBuffer* mb)
     GLMesh result = {};
     if (!mb)
         return result;
+    result.mb = mb;
 
     result.IndexCount = mb->getIndexCount();
     switch (mb->getIndexType())

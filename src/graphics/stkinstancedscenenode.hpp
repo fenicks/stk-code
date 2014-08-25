@@ -7,13 +7,22 @@
 class ListInstancedMatDefault : public MeshList<ListInstancedMatDefault, GLMesh *, size_t>
 {};
 
+class ListInstancedMatNormalMap : public MeshList<ListInstancedMatNormalMap, GLMesh *, size_t>
+{};
+
 class ListInstancedMatAlphaRef : public MeshList<ListInstancedMatAlphaRef, GLMesh *, size_t>
 {};
 
-class ListInstancedMatGrass : public MeshList<ListInstancedMatGrass, GLMesh *, size_t, core::vector3df, core::vector3df>
+class ListInstancedMatUnlit : public MeshList<ListInstancedMatUnlit, GLMesh *, size_t>
 {};
 
-class ListInstancedMatNormalMap : public MeshList<ListInstancedMatNormalMap, GLMesh *, size_t>
+class ListInstancedMatSphereMap : public MeshList<ListInstancedMatSphereMap, GLMesh *, size_t>
+{};
+
+class ListInstancedMatDetails : public MeshList<ListInstancedMatDetails, GLMesh *, size_t>
+{};
+
+class ListInstancedMatGrass : public MeshList<ListInstancedMatGrass, GLMesh *, size_t, core::vector3df, core::vector3df>
 {};
 
 class STKInstancedSceneNode : public irr::scene::CMeshSceneNode

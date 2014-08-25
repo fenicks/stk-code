@@ -49,6 +49,7 @@ struct GLMesh {
     size_t vaoBaseInstance;
     video::E_VERTEX_TYPE VAOType;
     uint64_t TextureHandles[6];
+    scene::IMeshBuffer *mb;
 };
 
 GLMesh allocateMeshBuffer(scene::IMeshBuffer* mb);

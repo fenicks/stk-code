@@ -269,10 +269,35 @@ void IrrDriver::renderGLSL(float dt)
     getPostProcessing()->update(dt);
 }
 
+static GLsync m_sync;
+
 void IrrDriver::renderScene(scene::ICameraSceneNode * const camnode, unsigned pointlightcount, std::vector<GlowData>& glows, float dt, bool hasShadow, bool forceRTT)
 {
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, SharedObject::ViewProjectionMatrixesUBO);
+    m_scene_manager->setActiveCamera(camnode);
 
+    // Add a 1 s timeout
+    if (!m_sync)
+        m_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    GLenum reason = glClientWaitSync(m_sync, GL_SYNC_FLUSH_COMMANDS_BIT, 1000000000);
+    /*    switch (reason)
+    {
+    case GL_ALREADY_SIGNALED:
+    printf("Already Signaled\n");
+    break;
+    case GL_TIMEOUT_EXPIRED:
+    printf("Timeout Expired\n");
+    break;
+    case GL_CONDITION_SATISFIED:
+    printf("Condition Satisfied\n");
+    break;
+    case GL_WAIT_FAILED:
+    printf("Wait Failed\n");
+    break;
+    }*/
+    PROFILER_PUSH_CPU_MARKER("- Draw Call Generation", 0xFF, 0xFF, 0xFF);
+    PrepareDrawCalls();
+    PROFILER_POP_CPU_MARKER();
     // Shadows
     {
         PROFILER_PUSH_CPU_MARKER("- Shadow", 0x30, 0x6F, 0x90);
@@ -322,6 +347,8 @@ void IrrDriver::renderScene(scene::ICameraSceneNode * const camnode, unsigned po
         m_rtts->getFBO(FBO_COLORS).Bind();
     renderSolidSecondPass();
     PROFILER_POP_CPU_MARKER();
+
+    m_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 
     if (getNormals())
     {
@@ -593,6 +620,11 @@ void IrrDriver::computeCameraMatrix(scene::ICameraSceneNode * const camnode, siz
     memcpy(&tmp[48], irr_driver->getInvProjMatrix().pointer(), 16 * sizeof(float));
 
     const core::matrix4 &SunCamViewMatrix = m_suncam->getViewMatrix();
+    for (unsigned i = 0; i < 4; i++)
+    {
+        if (!m_shadow_camnodes[i])
+            m_shadow_camnodes[i] = (scene::ICameraSceneNode *) m_suncam->clone();
+    }
     sun_ortho_matrix.clear();
 
     if (World::getWorld() && World::getWorld()->getTrack())
@@ -670,8 +702,8 @@ void IrrDriver::computeCameraMatrix(scene::ICameraSceneNode * const camnode, siz
             const float units_per_w = w / 1024;
             const float units_per_h = h / 1024;*/
 
-            m_suncam->setProjectionMatrix(getTighestFitOrthoProj(SunCamViewMatrix, vectors) , true);
-            m_suncam->render();
+            m_shadow_camnodes[i]->setProjectionMatrix(getTighestFitOrthoProj(SunCamViewMatrix, vectors) , true);
+            m_shadow_camnodes[i]->render();
 
             sun_ortho_matrix.push_back(getVideoDriver()->getTransform(video::ETS_PROJECTION) * getVideoDriver()->getTransform(video::ETS_VIEW));
         }
