@@ -115,6 +115,7 @@ void STKAnimatedMesh::update()
                 mesh.vao = createVAO(mesh.vertex_buffer, mesh.index_buffer, mb->getVertexType());
                 glGenBuffers(1, &(mesh.instance_buffer));
                 glBindBuffer(GL_ARRAY_BUFFER, mesh.instance_buffer);
+                glBufferData(GL_ARRAY_BUFFER, 1000 * sizeof(InstanceData), 0, GL_STREAM_DRAW);
                 glEnableVertexAttribArray(7);
                 glVertexAttribPointer(7, 3, GL_FLOAT, GL_FALSE, sizeof(InstanceData), 0);
                 glVertexAttribDivisor(7, 1);
