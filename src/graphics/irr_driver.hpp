@@ -296,7 +296,7 @@ public:
 
     bool hasARB_base_instance() const
     {
-        return hasBaseInstance;
+        return false;
     }
 
     bool hasVSLayerExtension() const

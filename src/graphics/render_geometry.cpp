@@ -120,12 +120,15 @@ template<typename Shader, enum E_VERTEX_TYPE VertexType, int ...List, typename..
 void renderMeshes1stPass(const std::vector<TexUnit> &TexUnits, std::vector<STK::Tuple<TupleType...> > *meshes)
 {
     glUseProgram(Shader::getInstance()->Program);
-    glBindVertexArray(VAOManager::getInstance()->getVAO(VertexType));
+    if (irr_driver->hasARB_base_instance())
+        glBindVertexArray(VAOManager::getInstance()->getVAO(VertexType));
     for (unsigned i = 0; i < meshes->size(); i++)
     {
         std::vector<GLuint> Textures;
         std::vector<uint64_t> Handles;
         GLMesh &mesh = *(STK::tuple_get<0>(meshes->at(i)));
+        if (!irr_driver->hasARB_base_instance())
+            glBindVertexArray(mesh.vao);
         for (unsigned j = 0; j < TexUnits.size(); j++)
         {
             if (UserConfigParams::m_azdo)
@@ -388,12 +391,15 @@ void renderMeshes2ndPass(const std::vector<TexUnit> &TexUnits, std::vector<STK::
     const std::vector<GLuint> &Prefilled_Tex)
 {
     glUseProgram(Shader::getInstance()->Program);
-    glBindVertexArray(VAOManager::getInstance()->getVAO(VertexType));
+    if (irr_driver->hasARB_base_instance())
+        glBindVertexArray(VAOManager::getInstance()->getVAO(VertexType));
     for (unsigned i = 0; i < meshes->size(); i++)
     {
         std::vector<uint64_t> Handles(Prefilled_Handle);
         std::vector<GLuint> Textures(Prefilled_Tex);
         GLMesh &mesh = *(STK::tuple_get<0>(meshes->at(i)));
+        if (!irr_driver->hasARB_base_instance())
+            glBindVertexArray(mesh.vao);
         for (unsigned j = 0; j < TexUnits.size(); j++)
         {
             if (UserConfigParams::m_azdo)
@@ -615,7 +621,8 @@ template<typename Shader, enum E_VERTEX_TYPE VertexType, int...List, typename...
 void renderTransparenPass(const std::vector<TexUnit> &TexUnits, std::vector<STK::Tuple<TupleType...> > *meshes)
 {
     glUseProgram(Shader::getInstance()->Program);
-    glBindVertexArray(VAOManager::getInstance()->getVAO(VertexType));
+    if (irr_driver->hasARB_base_instance())
+        glBindVertexArray(VAOManager::getInstance()->getVAO(VertexType));
     for (unsigned i = 0; i < meshes->size(); i++)
     {
         std::vector<uint64_t> Handles;
@@ -674,7 +681,8 @@ void IrrDriver::renderTransparent()
     ListDisplacement::getInstance()->clear();
     m_scene_manager->drawAll(scene::ESNRP_TRANSPARENT);
 
-    glBindVertexArray(VAOManager::getInstance()->getVAO(EVT_STANDARD));
+    if (irr_driver->hasARB_base_instance())
+        glBindVertexArray(VAOManager::getInstance()->getVAO(EVT_STANDARD));
 
     if (World::getWorld() && World::getWorld()->isFogEnabled())
     {
@@ -697,7 +705,7 @@ void IrrDriver::renderTransparent()
 
     if (!UserConfigParams::m_dynamic_lights)
         return;
-
+    return;
     // Render displacement nodes
     irr_driver->getFBO(FBO_TMP1_WITH_DS).Bind();
     glClear(GL_COLOR_BUFFER_BIT);
@@ -814,12 +822,15 @@ template<typename T, enum E_VERTEX_TYPE VertexType, int...List, typename... Args
 void renderShadow(const std::vector<GLuint> TextureUnits, unsigned cascade, const std::vector<STK::Tuple<Args...> > *t)
 {
     glUseProgram(T::getInstance()->Program);
-    glBindVertexArray(VAOManager::getInstance()->getVAO(VertexType));
+    if (irr_driver->hasARB_base_instance())
+        glBindVertexArray(VAOManager::getInstance()->getVAO(VertexType));
     for (unsigned i = 0; i < t->size(); i++)
     {
         std::vector<uint64_t> Handles;
         std::vector<GLuint> Textures;
         GLMesh *mesh = STK::tuple_get<0>(t->at(i));
+        if (!irr_driver->hasARB_base_instance())
+            glBindVertexArray(mesh->vao);
         for (unsigned j = 0; j < TextureUnits.size(); j++)
         {
             compressTexture(mesh->textures[TextureUnits[j]], true);
@@ -882,7 +893,7 @@ void renderInstancedShadow(const std::vector<GLuint> TextureUnits, unsigned casc
         std::vector<GLuint> Textures;
         GLMesh *mesh = STK::tuple_get<0>(t->at(i));
         if (!irr_driver->hasARB_base_instance())
-            glBindVertexArray(mesh->vao_shadow_pass);
+            glBindVertexArray(mesh->vao);
 
         for (unsigned j = 0; j < TextureUnits.size(); j++)
             Textures.push_back(getTextureGLuint(mesh->textures[TextureUnits[j]]));
@@ -1062,11 +1073,14 @@ template<typename T, enum E_VERTEX_TYPE VertexType, int... Selector, typename...
 void drawRSM(const core::matrix4 & rsm_matrix, const std::vector<GLuint> &TextureUnits, std::vector<STK::Tuple<Args...> > *t)
 {
     glUseProgram(T::getInstance()->Program);
-    glBindVertexArray(VAOManager::getInstance()->getVAO(VertexType));
+    if (irr_driver->hasARB_base_instance())
+        glBindVertexArray(VAOManager::getInstance()->getVAO(VertexType));
     for (unsigned i = 0; i < t->size(); i++)
     {
         std::vector<GLuint> Textures;
         GLMesh *mesh = STK::tuple_get<0>(t->at(i));
+        if (!irr_driver->hasARB_base_instance())
+            glBindVertexArray(mesh->vao);
         for (unsigned j = 0; j < TextureUnits.size(); j++)
             Textures.push_back(getTextureGLuint(mesh->textures[TextureUnits[j]]));
         T::getInstance()->SetTextureUnits(Textures);

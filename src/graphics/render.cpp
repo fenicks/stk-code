@@ -750,6 +750,7 @@ void IrrDriver::renderShadowsDebug()
 
 void IrrDriver::renderGlow(std::vector<GlowData>& glows)
 {
+    return;
     m_scene_manager->setCurrentRendertime(scene::ESNRP_SOLID);
     m_rtts->getFBO(FBO_TMP1_WITH_DS).Bind();
     glClearStencil(0);
