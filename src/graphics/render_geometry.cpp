@@ -628,6 +628,8 @@ void renderTransparenPass(const std::vector<TexUnit> &TexUnits, std::vector<STK:
         std::vector<uint64_t> Handles;
         std::vector<GLuint> Textures;
         GLMesh &mesh = *(STK::tuple_get<0>(meshes->at(i)));
+        if (!irr_driver->hasARB_base_instance())
+            glBindVertexArray(mesh.vao);
         for (unsigned j = 0; j < TexUnits.size(); j++)
         {
             if (!mesh.textures[TexUnits[j].m_id])

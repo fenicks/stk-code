@@ -110,6 +110,7 @@ void STKAnimatedMesh::render()
                 MeshSolidMaterial[MatType].push_back(&mesh);
                 InitTextures(mesh, MatType);
             }
+
             if (irr_driver->hasARB_base_instance())
             {
                 std::pair<unsigned, unsigned> p = VAOManager::getInstance()->getBase(mb);
